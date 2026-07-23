@@ -55,5 +55,8 @@
   document.getElementById('stat-modules-2').textContent = (window.COURSES || []).length;
   document.getElementById('stat-topics').textContent = (window.SEARCH_INDEX || []).length;
 </script>
+<script>
+document.addEventListener("contextmenu", (e) => { e.preventDefault(); });
+</script>
 </body>
 </html>
