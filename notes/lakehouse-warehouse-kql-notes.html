@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lakehouse, Warehouse & KQL Database — Complete Notes</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg: #0a0a0a;
+    --bg2: #111111;
+    --bg3: #161616;
+    --border: #222222;
+    --green: #00ff88;
+    --green-dim: #00cc6a;
+    --green-glow: rgba(0,255,136,0.15);
+    --green-subtle: rgba(0,255,136,0.07);
+    --yellow: #ffd60a;
+    --blue: #58a6ff;
+    --red: #ff6b6b;
+    --purple: #c792ea;
+    --orange: #ffab40;
+    --text: #e0e0e0;
+    --text-dim: #888;
+    --text-faint: #444;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Inter', sans-serif;
+    --sidebar-w: 280px;
+    --topnav-h: 52px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; line-height: 1.7; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+  /* ── TOP NAV (PAGES) ── */
+  #topnav {
+    position: fixed; top: 0; left: 0; right: 0; height: var(--topnav-h);
+    background: var(--bg2); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; z-index: 200; overflow-x: auto;
+    scrollbar-width: none;
+  }
+  #topnav::-webkit-scrollbar { display: none; }
+
+  .nav-logo {
+    font-family: var(--mono); font-size: 13px; font-weight: 700;
+    color: var(--green); letter-spacing: .08em; text-transform: uppercase;
+    padding: 0 20px; white-space: nowrap; display: flex; align-items: center; gap: 8px;
+    border-right: 1px solid var(--border); flex-shrink: 0;
+  }
+  .nav-logo::before { content: '>'; animation: blink 1.1s step-end infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  .page-tabs { display: flex; align-items: stretch; height: var(--topnav-h); }
+
+  .page-tab {
+    display: flex; align-items: center; gap: 7px;
+    padding: 0 18px; font-family: var(--sans); font-size: 13px;
+    color: var(--text-dim); cursor: pointer; white-space: nowrap;
+    border-bottom: 2px solid transparent; border-right: 1px solid var(--border);
+    transition: all .18s; user-select: none; flex-shrink: 0;
+  }
+  .page-tab:hover { color: var(--text); background: var(--green-subtle); }
+  .page-tab.active { color: var(--green); border-bottom-color: var(--green); background: var(--green-subtle); }
+  .page-tab .tab-icon { font-size: 14px; }
+  .page-tab .tab-num {
+    font-family: var(--mono); font-size: 10px; color: var(--text-faint);
+    background: var(--bg3); border: 1px solid var(--border);
+    padding: 1px 5px; border-radius: 3px;
+  }
+  .page-tab.active .tab-num { color: var(--green); border-color: rgba(0,255,136,.3); }
+
+  /* ── LAYOUT ── */
+  #layout {
+    display: flex; margin-top: var(--topnav-h); height: calc(100vh - var(--topnav-h)); overflow: hidden;
+  }
+
+  /* ── SIDEBAR ── */
+  #sidebar {
+    width: var(--sidebar-w); background: var(--bg2);
+    border-right: 1px solid var(--border); overflow-y: auto;
+    flex-shrink: 0; transition: transform .3s;
+  }
+  #sidebar::-webkit-scrollbar { width: 4px; }
+  #sidebar::-webkit-scrollbar-track { background: var(--bg2); }
+  #sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .sidebar-header {
+    padding: 20px 20px 16px; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--bg2); z-index: 1;
+  }
+  .sidebar-page-title {
+    font-family: var(--mono); font-size: 11px; font-weight: 700;
+    color: var(--green); letter-spacing: .1em; text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .sidebar-search { position: relative; }
+  .sidebar-search input {
+    width: 100%; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text); font-family: var(--mono);
+    font-size: 12px; padding: 7px 10px 7px 30px; outline: none; transition: border-color .2s;
+  }
+  .sidebar-search input:focus { border-color: var(--green); }
+  .sidebar-search input::placeholder { color: var(--text-faint); }
+  .sidebar-search::before {
+    content: '⌕'; position: absolute; left: 9px; top: 50%;
+    transform: translateY(-50%); color: var(--text-dim); font-size: 14px; pointer-events: none;
+  }
+
+  .toc-section { padding: 8px 0; }
+  .toc-section-label {
+    font-family: var(--mono); font-size: 10px; font-weight: 600;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--text-faint);
+    padding: 8px 20px 4px;
+  }
+  .toc-link {
+    display: flex; align-items: center; gap: 8px; padding: 6px 20px;
+    color: var(--text-dim); text-decoration: none; font-size: 13px;
+    font-family: var(--sans); border-left: 2px solid transparent;
+    transition: all .15s; cursor: pointer;
+  }
+  .toc-link:hover, .toc-link.active {
+    color: var(--green); border-left-color: var(--green); background: var(--green-subtle);
+  }
+  .toc-link .toc-icon { font-size: 11px; width: 16px; text-align: center; flex-shrink: 0; }
+
+  /* ── MAIN CONTENT ── */
+  #main {
+    flex: 1; overflow-y: auto; padding: 0 48px 80px; min-width: 0;
+  }
+  #main::-webkit-scrollbar { width: 6px; }
+  #main::-webkit-scrollbar-track { background: var(--bg); }
+  #main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ── PAGES ── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── HERO ── */
+  .hero { padding: 64px 0 48px; border-bottom: 1px solid var(--border); margin-bottom: 56px; }
+  .hero-eyebrow {
+    font-family: var(--mono); font-size: 12px; color: var(--green);
+    letter-spacing: .15em; text-transform: uppercase; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .hero-eyebrow::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(to right, var(--green-dim), transparent); max-width: 200px;
+  }
+  .hero h1 {
+    font-family: var(--mono); font-size: clamp(32px, 4vw, 58px);
+    font-weight: 700; line-height: 1.1; letter-spacing: -.02em; color: #fff; margin-bottom: 18px;
+  }
+  .hero h1 span { color: var(--green); text-shadow: 0 0 40px var(--green-glow); }
+  .hero-desc { font-size: 15px; color: var(--text-dim); max-width: 640px; line-height: 1.8; margin-bottom: 28px; }
+  .hero-badges { display: flex; gap: 10px; flex-wrap: wrap; }
+  .badge { font-family: var(--mono); font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 4px; letter-spacing: .06em; }
+  .badge-green { background: var(--green-subtle); color: var(--green); border: 1px solid rgba(0,255,136,.25); }
+  .badge-blue { background: rgba(88,166,255,.08); color: var(--blue); border: 1px solid rgba(88,166,255,.2); }
+  .badge-yellow { background: rgba(255,214,10,.07); color: var(--yellow); border: 1px solid rgba(255,214,10,.2); }
+  .badge-purple { background: rgba(199,146,234,.08); color: var(--purple); border: 1px solid rgba(199,146,234,.2); }
+
+  /* ── SECTIONS ── */
+  .section { margin-bottom: 64px; scroll-margin-top: 20px; }
+  .section-header {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 28px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+  }
+  .section-num {
+    font-family: var(--mono); font-size: 11px; color: var(--green);
+    background: var(--green-subtle); border: 1px solid rgba(0,255,136,.2);
+    padding: 3px 8px; border-radius: 4px; font-weight: 700; letter-spacing: .08em; flex-shrink: 0;
+  }
+  .section h2 { font-family: var(--mono); font-size: 22px; font-weight: 700; color: #fff; letter-spacing: -.01em; }
+  .section h3 {
+    font-family: var(--sans); font-size: 16px; font-weight: 600; color: var(--text);
+    margin: 28px 0 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .section h3::before { content: '//'; font-family: var(--mono); color: var(--green-dim); font-size: 13px; font-weight: 400; }
+  .section p { color: var(--text-dim); margin-bottom: 14px; max-width: 760px; }
+
+  /* ── CODE BLOCK ── */
+  .code-block { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin: 16px 0; }
+  .code-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; background: var(--bg2); border-bottom: 1px solid var(--border);
+    font-family: var(--mono); font-size: 11px; color: var(--text-faint);
+  }
+  .code-header .dots { display: flex; gap: 6px; }
+  .code-header .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-r { background: #ff5f57; } .dot-y { background: #febc2e; } .dot-g { background: #28c840; }
+  .copy-btn {
+    background: none; border: 1px solid var(--border); color: var(--text-faint);
+    font-family: var(--mono); font-size: 10px; padding: 3px 8px;
+    border-radius: 4px; cursor: pointer; transition: all .15s; letter-spacing: .06em;
+  }
+  .copy-btn:hover { border-color: var(--green); color: var(--green); }
+  .copy-btn.copied { border-color: var(--green); color: var(--green); }
+  .code-block pre {
+    padding: 20px; overflow-x: auto; font-family: var(--mono);
+    font-size: 13.5px; line-height: 1.8; color: var(--text);
+  }
+  .code-block pre::-webkit-scrollbar { height: 4px; }
+  .code-block pre::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .kw { color: var(--purple); }
+  .fn { color: var(--blue); }
+  .str { color: var(--yellow); }
+  .cmt { color: var(--text-faint); font-style: italic; }
+  .num { color: var(--orange); }
+  .cls { color: var(--green); }
+  .op  { color: var(--red); }
+  .out { color: var(--purple); }
+  .dec { color: var(--orange); }
+
+  /* ── INFO BOXES ── */
+  .info-box {
+    border-radius: 8px; padding: 16px 18px; margin: 16px 0;
+    display: flex; gap: 12px; align-items: flex-start; font-size: 14px; max-width: 760px;
+  }
+  .info-box .icon { font-size: 16px; flex-shrink: 0; margin-top: 2px; }
+  .info-box-content { color: var(--text-dim); line-height: 1.7; }
+  .info-box-content strong { color: var(--text); font-weight: 600; }
+  .tip { background: rgba(0,255,136,.06); border: 1px solid rgba(0,255,136,.2); }
+  .warning { background: rgba(255,214,10,.06); border: 1px solid rgba(255,214,10,.2); }
+  .note { background: rgba(88,166,255,.06); border: 1px solid rgba(88,166,255,.2); }
+  .danger { background: rgba(255,107,107,.06); border: 1px solid rgba(255,107,107,.2); }
+
+  /* ── TABLE ── */
+  .table-wrap { overflow-x: auto; margin: 16px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-family: var(--mono); }
+  th { background: var(--bg3); color: var(--green); font-weight: 600; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+  td { padding: 9px 14px; border-bottom: 1px solid var(--border); color: var(--text-dim); vertical-align: top; }
+  td:first-child { color: var(--green-dim); font-weight: 500; }
+  tr:hover td { background: var(--green-subtle); }
+
+  /* ── CARDS ── */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin: 16px 0; }
+  .card { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 16px; transition: border-color .2s; }
+  .card:hover { border-color: var(--green); }
+  .card .card-icon { font-size: 20px; margin-bottom: 8px; }
+  .card .card-title { font-weight: 600; font-size: 14px; color: var(--text); margin-bottom: 4px; }
+  .card .card-desc { font-size: 12.5px; color: var(--text-dim); line-height: 1.6; }
+
+  /* ── STYLED LIST ── */
+  .styled-list { list-style: none; padding: 0; margin: 12px 0; max-width: 760px; }
+  .styled-list li { padding: 7px 0 7px 22px; color: var(--text-dim); font-size: 14px; border-bottom: 1px solid var(--border); position: relative; }
+  .styled-list li:last-child { border-bottom: none; }
+  .styled-list li::before { content: '▸'; position: absolute; left: 0; color: var(--green); font-size: 11px; top: 9px; }
+  .styled-list li strong { color: var(--text); }
+
+  /* ── FLOW ── */
+  .flow { display: flex; align-items: center; gap: 0; margin: 20px 0; flex-wrap: wrap; max-width: 760px; }
+  .flow-step { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; text-align: center; min-width: 110px; }
+  .flow-step .step-label { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 4px; color: var(--text-faint); }
+  .flow-step .step-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .flow-step.active { border-color: var(--green); background: var(--green-subtle); }
+  .flow-step.active .step-label { color: var(--green); }
+  .flow-step.active .step-name { color: var(--green); }
+  .flow-arrow { font-family: var(--mono); color: var(--text-faint); font-size: 18px; padding: 0 8px; flex-shrink: 0; }
+
+  code { font-family: var(--mono); font-size: 12.5px; background: var(--bg3); border: 1px solid var(--border); color: var(--green-dim); padding: 1px 6px; border-radius: 4px; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+  /* ── BACK TOP ── */
+  #back-top { position: fixed; bottom: 28px; right: 28px; background: var(--bg2); border: 1px solid var(--border); color: var(--green); font-family: var(--mono); font-size: 12px; padding: 8px 14px; border-radius: 6px; cursor: pointer; opacity: 0; transition: opacity .3s, border-color .2s; z-index: 50; }
+  #back-top.visible { opacity: 1; }
+  #back-top:hover { border-color: var(--green); background: var(--green-subtle); }
+
+  /* ── HAMBURGER ── */
+  #menu-toggle { display: none; position: fixed; top: 10px; right: 12px; z-index: 300; background: var(--bg2); border: 1px solid var(--border); color: var(--green); font-size: 18px; width: 34px; height: 34px; border-radius: 6px; cursor: pointer; align-items: center; justify-content: center; }
+  #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 90; margin-top: var(--topnav-h); }
+
+  @media (max-width: 900px) {
+    #sidebar { position: fixed; top: var(--topnav-h); bottom: 0; left: 0; z-index: 100; transform: translateX(-100%); }
+    #sidebar.open { transform: translateX(0); }
+    #menu-toggle { display: flex; }
+    #overlay.show { display: block; }
+    #main { padding: 24px 20px 60px; }
+    .page-tab span.tab-label { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP PAGE NAV -->
+<nav id="topnav">
+  <div class="nav-logo">Fabric Data Notes</div>
+  <div class="page-tabs">
+    <div class="page-tab active" onclick="switchPage('p1',this)">
+      <span class="tab-icon">🏞️</span><span class="tab-label">Lakehouse</span><span class="tab-num">01</span>
+    </div>
+    <div class="page-tab" onclick="switchPage('p2',this)">
+      <span class="tab-icon">🏢</span><span class="tab-label">Warehouse</span><span class="tab-num">02</span>
+    </div>
+    <div class="page-tab" onclick="switchPage('p3',this)">
+      <span class="tab-icon">⚡</span><span class="tab-label">KQL Database</span><span class="tab-num">03</span>
+    </div>
+    <div class="page-tab" onclick="switchPage('p4',this)">
+      <span class="tab-icon">📋</span><span class="tab-label">Comparison & Cheatsheet</span><span class="tab-num">04</span>
+    </div>
+  </div>
+</nav>
+
+<button id="menu-toggle" onclick="toggleSidebar()">☰</button>
+<div id="overlay" onclick="closeSidebar()"></div>
+
+<div id="layout">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-page-title" id="sidebar-title">🏞️ Lakehouse</div>
+      <div class="sidebar-search">
+        <input id="toc-search" type="text" placeholder="Filter sections..." oninput="filterTOC(this.value)">
+      </div>
+    </div>
+    <div id="toc-content"></div>
+  </aside>
+
+  <!-- MAIN -->
+  <main id="main">
+
+  <!-- ══════════════════ PAGE 1 — LAKEHOUSE ══════════════════ -->
+  <div class="page active" id="p1">
+    <div class="hero">
+      <div class="hero-eyebrow">Page 01 / Microsoft Fabric</div>
+      <h1>The <span>Lakehouse</span></h1>
+      <p class="hero-desc">A unified platform that combines the flexibility, scale and low-cost storage of a data lake with the structure and fast SQL query performance of a data warehouse — built on open Delta Lake format on top of OneLake.</p>
+      <div class="hero-badges">
+        <span class="badge badge-green">OneLake</span>
+        <span class="badge badge-blue">Delta Lake</span>
+        <span class="badge badge-yellow">Spark</span>
+        <span class="badge badge-purple">Open Format</span>
+      </div>
+    </div>
+
+    <div class="section" id="s1-intro">
+      <div class="section-header"><span class="section-num">01</span><h2>What Is a Lakehouse?</h2></div>
+      <p>A <strong style="color:var(--text)">Lakehouse</strong> is a single, unified data architecture item in Microsoft Fabric that stores all your data — structured and unstructured — in one place, backed by <strong style="color:var(--text)">OneLake</strong> (Fabric's tenant-wide data lake, "OneDrive for data").</p>
+      <p>It merges two worlds that used to be separate:</p>
+      <div class="flow">
+        <div class="flow-step"><div class="step-label">World 1</div><div class="step-name">Data Lake</div></div>
+        <div class="flow-arrow">+</div>
+        <div class="flow-step"><div class="step-label">World 2</div><div class="step-name">Data Warehouse</div></div>
+        <div class="flow-arrow">=</div>
+        <div class="flow-step active"><div class="step-label">Result</div><div class="step-name">Lakehouse</div></div>
+      </div>
+      <div class="card-grid">
+        <div class="card"><div class="card-icon">📂</div><div class="card-title">Files</div><div class="card-desc">Raw/unstructured data — CSV, JSON, Parquet, images, PDFs, sub-folders. Explored like a file system.</div></div>
+        <div class="card"><div class="card-icon">🗄️</div><div class="card-title">Tables</div><div class="card-desc">Managed, structured Delta tables automatically registered in the SQL analytics endpoint & Spark catalog.</div></div>
+        <div class="card"><div class="card-icon">🔗</div><div class="card-title">Shortcuts</div><div class="card-desc">Virtual pointers to data in ADLS Gen2, S3, or other Fabric items — no data duplication or movement.</div></div>
+        <div class="card"><div class="card-icon">🧮</div><div class="card-title">SQL Endpoint</div><div class="card-desc">Auto-generated, read-only T-SQL query surface over every Delta table in the Lakehouse.</div></div>
+      </div>
+      <div class="info-box tip">
+        <span class="icon">💡</span>
+        <div class="info-box-content"><strong>Key idea:</strong> One copy of data, many engines. Spark, T-SQL, Power BI (via Direct Lake mode), and KQL can all query the same Delta tables without copying data around.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s1-architecture">
+      <div class="section-header"><span class="section-num">02</span><h2>Architecture</h2></div>
+      <p>Every Fabric Lakehouse item is physically stored inside a <strong style="color:var(--text)">workspace</strong> on <strong style="color:var(--text)">OneLake</strong>, using the open-source <strong style="color:var(--text)">Delta Parquet</strong> format under the hood.</p>
+      <h3>OneLake — the foundation</h3>
+      <p>OneLake is a single, logical data lake for the whole organization. Every Fabric workspace gets a folder in OneLake automatically — no separate storage account to provision, no keys to manage.</p>
+      <table>
+        <tr><th>Layer</th><th>Purpose</th></tr>
+        <tr><td>Bronze / Files</td><td>Landing zone for raw ingested data, unprocessed, any format.</td></tr>
+        <tr><td>Silver / Tables (cleansed)</td><td>Cleaned, validated, deduplicated Delta tables.</td></tr>
+        <tr><td>Gold / Tables (curated)</td><td>Business-ready, aggregated, modeled Delta tables consumed by BI & ML.</td></tr>
+      </table>
+      <div class="info-box note">
+        <span class="icon">📘</span>
+        <div class="info-box-content">This Bronze → Silver → Gold pattern is the <strong>medallion architecture</strong>, the standard way to organize a Lakehouse.</div>
+      </div>
+      <h3>Two ways to see the same data</h3>
+      <table>
+        <tr><th>Endpoint</th><th>Engine</th><th>Use case</th></tr>
+        <tr><td>Lakehouse (Spark)</td><td>Apache Spark / Notebooks</td><td>ETL, transformations, ML, PySpark/Scala/SQL code</td></tr>
+        <tr><td>SQL Analytics Endpoint</td><td>T-SQL (read-only)</td><td>Reporting, ad-hoc queries, Power BI, joins across tables</td></tr>
+      </table>
+    </div>
+
+    <div class="section" id="s1-create">
+      <div class="section-header"><span class="section-num">03</span><h2>Creating & Loading Data</h2></div>
+      <p>A Lakehouse is created inside a workspace: <code>+ New item → Lakehouse</code>. It automatically provisions the Files section, Tables section, a SQL analytics endpoint, and a default semantic model.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>pyspark — write a Delta table</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="cmt"># Read raw files landed in the Files section</span>
+df = spark.<span class="fn">read</span>.<span class="fn">format</span>(<span class="str">"csv"</span>).<span class="fn">option</span>(<span class="str">"header"</span>, <span class="kw">True</span>).<span class="fn">load</span>(<span class="str">"Files/raw/sales/2026/"</span>)
+
+<span class="cmt"># Basic cleansing</span>
+df_clean = df.<span class="fn">dropDuplicates</span>().<span class="fn">na</span>.<span class="fn">drop</span>()
+
+<span class="cmt"># Write as a managed Delta table — appears under Tables/</span>
+df_clean.<span class="fn">write</span>.<span class="fn">format</span>(<span class="str">"delta"</span>) \
+    .<span class="fn">mode</span>(<span class="str">"overwrite"</span>) \
+    .<span class="fn">saveAsTable</span>(<span class="str">"sales_silver"</span>)</pre>
+      </div>
+      <h3>Ways to load data</h3>
+      <ul class="styled-list">
+        <li><strong>Upload</strong> — drag & drop files directly into the Files section.</li>
+        <li><strong>Notebooks</strong> — PySpark, Scala, Spark SQL, or R code to ingest & transform.</li>
+        <li><strong>Dataflows Gen2</strong> — low-code Power Query style ingestion.</li>
+        <li><strong>Data Factory pipelines</strong> — orchestrated, scheduled copy activities from 100+ connectors.</li>
+        <li><strong>Shortcuts</strong> — zero-copy links to existing external/internal data.</li>
+      </ul>
+    </div>
+
+    <div class="section" id="s1-delta">
+      <div class="section-header"><span class="section-num">04</span><h2>Delta Lake Tables & Spark</h2></div>
+      <p><strong style="color:var(--text)">Delta Lake</strong> is an open-source storage layer that adds ACID transactions, schema enforcement, versioning ("time travel"), and upserts (MERGE) on top of plain Parquet files.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>spark sql — table operations</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="cmt">-- Create a managed Delta table</span>
+<span class="kw">CREATE TABLE</span> customers (
+  id <span class="cls">INT</span>, name <span class="cls">STRING</span>, signup_date <span class="cls">DATE</span>
+) <span class="kw">USING</span> DELTA;
+
+<span class="cmt">-- Upsert (MERGE) — the classic Delta pattern</span>
+<span class="kw">MERGE INTO</span> customers <span class="kw">AS</span> target
+<span class="kw">USING</span> updates <span class="kw">AS</span> source
+<span class="kw">ON</span> target.id = source.id
+<span class="kw">WHEN MATCHED THEN UPDATE SET</span> *
+<span class="kw">WHEN NOT MATCHED THEN INSERT</span> *;
+
+<span class="cmt">-- Time travel — query a previous version</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> customers <span class="kw">VERSION AS OF</span> <span class="num">3</span>;
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> customers <span class="kw">TIMESTAMP AS OF</span> <span class="str">'2026-07-01'</span>;
+
+<span class="cmt">-- Maintenance</span>
+<span class="kw">OPTIMIZE</span> customers <span class="kw">ZORDER BY</span> (id);
+<span class="kw">VACUUM</span> customers <span class="kw">RETAIN</span> <span class="num">168</span> <span class="kw">HOURS</span>;</pre>
+      </div>
+      <div class="info-box warning">
+        <span class="icon">⚠️</span>
+        <div class="info-box-content"><strong>VACUUM</strong> permanently deletes old file versions past the retention window — you lose time-travel ability for that data.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s1-shortcuts">
+      <div class="section-header"><span class="section-num">05</span><h2>Shortcuts & OneLake Integration</h2></div>
+      <p>A <strong style="color:var(--text)">shortcut</strong> is a symbolic link inside a Lakehouse that points to data stored elsewhere — another Lakehouse, a Warehouse, ADLS Gen2, Amazon S3, or Dataverse — without copying or moving the underlying files.</p>
+      <ul class="styled-list">
+        <li><strong>Internal shortcuts</strong> — point to another Lakehouse/Warehouse in the same or a different Fabric workspace.</li>
+        <li><strong>External shortcuts</strong> — point to ADLS Gen2, S3, or Dataverse outside Fabric.</li>
+        <li><strong>OneLake catalog</strong> — data is discoverable tenant-wide once shared, following governed access via workspace roles.</li>
+      </ul>
+      <div class="info-box tip">
+        <span class="icon">💡</span>
+        <div class="info-box-content">Shortcuts are the reason Fabric is called a "one-copy" architecture — the same physical Parquet files can be queried from a Lakehouse, a Warehouse, and a KQL Database at once.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s1-vs">
+      <div class="section-header"><span class="section-num">06</span><h2>When to Choose a Lakehouse</h2></div>
+      <table>
+        <tr><th>Good fit</th><th>Less ideal</th></tr>
+        <tr><td>Data engineering, ML, Spark-based ETL</td><td>Teams that only know T-SQL and need full DML/DDL write access via SQL</td></tr>
+        <tr><td>Mixed structured + unstructured data</td><td>Strict multi-table transactions across many tables</td></tr>
+        <tr><td>Large-scale batch & streaming ingestion</td><td>Sub-second row-level OLTP-style updates</td></tr>
+        <tr><td>Open format, engine-agnostic storage</td><td>Legacy warehouse tooling that expects a classic relational engine</td></tr>
+      </table>
+    </div>
+  </div><!-- /page 1 -->
+
+  <!-- ══════════════════ PAGE 2 — WAREHOUSE ══════════════════ -->
+  <div class="page" id="p2">
+    <div class="hero">
+      <div class="hero-eyebrow">Page 02 / Microsoft Fabric</div>
+      <h1>The <span>Warehouse</span></h1>
+      <p class="hero-desc">A fully transactional, enterprise-grade data warehouse experience with full T-SQL support (DDL, DML, multi-table transactions) — while still storing data as open Delta tables on OneLake.</p>
+      <div class="hero-badges">
+        <span class="badge badge-green">T-SQL</span>
+        <span class="badge badge-blue">MPP Engine</span>
+        <span class="badge badge-yellow">ACID Transactions</span>
+        <span class="badge badge-purple">Delta Under the Hood</span>
+      </div>
+    </div>
+
+    <div class="section" id="s2-intro">
+      <div class="section-header"><span class="section-num">01</span><h2>What Is a Data Warehouse?</h2></div>
+      <p>A Fabric <strong style="color:var(--text)">Warehouse</strong> is a relational data warehouse item designed for SQL-first developers. Unlike the Lakehouse SQL endpoint (read-only), a Warehouse supports full <strong style="color:var(--text)">CREATE, INSERT, UPDATE, DELETE, MERGE</strong> via T-SQL, with multi-statement transactions.</p>
+      <div class="card-grid">
+        <div class="card"><div class="card-icon">🏗️</div><div class="card-title">Full T-SQL Surface</div><div class="card-desc">DDL, DML, views, stored procedures, functions — like SQL Server / Synapse.</div></div>
+        <div class="card"><div class="card-icon">🔄</div><div class="card-title">ACID Transactions</div><div class="card-desc">Multi-table, multi-statement transactions with commit/rollback.</div></div>
+        <div class="card"><div class="card-icon">📐</div><div class="card-title">MPP Compute</div><div class="card-desc">Massively parallel query engine, auto-scaled, no infrastructure to manage.</div></div>
+        <div class="card"><div class="card-icon">🌐</div><div class="card-title">Cross-item Queries</div><div class="card-desc">Query across Warehouse + Lakehouse tables in one T-SQL statement.</div></div>
+      </div>
+      <div class="info-box note">
+        <span class="icon">📘</span>
+        <div class="info-box-content">Even though you interact with it entirely via T-SQL, a Warehouse still stores its tables as <strong>Delta Parquet</strong> files on OneLake — so Spark and Power BI Direct Lake can read them too.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s2-architecture">
+      <div class="section-header"><span class="section-num">02</span><h2>Fabric Warehouse Architecture</h2></div>
+      <p>Compute and storage are separated: storage lives on OneLake (Delta format), and a serverless MPP compute layer scales up or down automatically based on query load, billed through Fabric capacity units.</p>
+      <div class="flow">
+        <div class="flow-step"><div class="step-label">Client</div><div class="step-name">T-SQL / SSMS / Power BI</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step active"><div class="step-label">Engine</div><div class="step-name">Polaris MPP</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><div class="step-label">Storage</div><div class="step-name">OneLake (Delta)</div></div>
+      </div>
+      <h3>Warehouse vs SQL analytics endpoint</h3>
+      <table>
+        <tr><th>Item</th><th>Write access</th><th>Created from</th></tr>
+        <tr><td>Warehouse</td><td>Full DDL/DML via T-SQL</td><td>Created directly as a Warehouse item</td></tr>
+        <tr><td>SQL analytics endpoint</td><td>Read-only (auto-generated)</td><td>Auto-created for every Lakehouse</td></tr>
+      </table>
+    </div>
+
+    <div class="section" id="s2-tsql">
+      <div class="section-header"><span class="section-num">03</span><h2>T-SQL & Table Creation</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>t-sql — DDL & DML</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="cmt">-- Create schema & table</span>
+<span class="kw">CREATE SCHEMA</span> sales;
+<span class="kw">CREATE TABLE</span> sales.orders (
+  order_id  <span class="cls">INT</span> <span class="kw">NOT NULL</span>,
+  cust_id   <span class="cls">INT</span>,
+  order_dt  <span class="cls">DATE</span>,
+  amount    <span class="cls">DECIMAL</span>(<span class="num">10</span>,<span class="num">2</span>)
+);
+
+<span class="cmt">-- Transaction with multiple statements</span>
+<span class="kw">BEGIN TRANSACTION</span>;
+  <span class="kw">INSERT INTO</span> sales.orders <span class="kw">VALUES</span> (<span class="num">1</span>, <span class="num">101</span>, <span class="str">'2026-07-01'</span>, <span class="num">250.00</span>);
+  <span class="kw">UPDATE</span> sales.orders <span class="kw">SET</span> amount = amount * <span class="num">1.1</span> <span class="kw">WHERE</span> order_id = <span class="num">1</span>;
+<span class="kw">COMMIT</span>;
+
+<span class="cmt">-- Cross-database / cross-item query</span>
+<span class="kw">SELECT</span> o.order_id, l.product_name
+<span class="kw">FROM</span> sales.orders <span class="kw">AS</span> o
+<span class="kw">JOIN</span> MyLakehouse.dbo.products <span class="kw">AS</span> l
+  <span class="kw">ON</span> o.cust_id = l.cust_id;</pre>
+      </div>
+    </div>
+
+    <div class="section" id="s2-schema">
+      <div class="section-header"><span class="section-num">04</span><h2>Schemas, Views & Stored Procedures</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>t-sql — views & procs</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="kw">CREATE VIEW</span> sales.vw_monthly_totals <span class="kw">AS</span>
+<span class="kw">SELECT</span> <span class="fn">DATEPART</span>(month, order_dt) <span class="kw">AS</span> mth, <span class="fn">SUM</span>(amount) <span class="kw">AS</span> total
+<span class="kw">FROM</span> sales.orders
+<span class="kw">GROUP BY</span> <span class="fn">DATEPART</span>(month, order_dt);
+
+<span class="kw">CREATE PROCEDURE</span> sales.usp_add_order
+  @cust_id <span class="cls">INT</span>, @amount <span class="cls">DECIMAL</span>(<span class="num">10</span>,<span class="num">2</span>)
+<span class="kw">AS</span>
+<span class="kw">BEGIN</span>
+  <span class="kw">INSERT INTO</span> sales.orders (cust_id, order_dt, amount)
+  <span class="kw">VALUES</span> (@cust_id, <span class="fn">GETDATE</span>(), @amount);
+<span class="kw">END</span>;</pre>
+      </div>
+    </div>
+
+    <div class="section" id="s2-security">
+      <div class="section-header"><span class="section-num">05</span><h2>Security</h2></div>
+      <table>
+        <tr><th>Feature</th><th>Purpose</th></tr>
+        <tr><td>Row-Level Security (RLS)</td><td>Restrict which rows a user can see, via predicate functions & security policies.</td></tr>
+        <tr><td>Column-Level Security (CLS)</td><td>Hide specific columns from unauthorized roles.</td></tr>
+        <tr><td>Dynamic Data Masking</td><td>Mask sensitive column values (emails, SSNs) at query time for non-privileged users.</td></tr>
+        <tr><td>Workspace roles</td><td>Admin / Member / Contributor / Viewer control at the workspace level.</td></tr>
+      </table>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>t-sql — row-level security</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="kw">CREATE FUNCTION</span> security.fn_region_predicate(@region <span class="cls">NVARCHAR</span>(<span class="num">50</span>))
+<span class="kw">RETURNS TABLE</span>
+<span class="kw">AS RETURN SELECT</span> <span class="num">1</span> <span class="kw">AS</span> allowed
+<span class="kw">WHERE</span> @region = <span class="fn">USER_NAME</span>();
+
+<span class="kw">CREATE SECURITY POLICY</span> RegionFilter
+<span class="kw">ADD FILTER PREDICATE</span> security.fn_region_predicate(region)
+<span class="kw">ON</span> sales.orders;</pre>
+      </div>
+    </div>
+
+    <div class="section" id="s2-perf">
+      <div class="section-header"><span class="section-num">06</span><h2>Performance & Statistics</h2></div>
+      <ul class="styled-list">
+        <li><strong>Statistics</strong> — auto-created/updated to help the optimizer pick good query plans; can also be created manually with <code>CREATE STATISTICS</code>.</li>
+        <li><strong>Result set caching</strong> — repeated identical queries can be served from cache for faster response.</li>
+        <li><strong>V-Order</strong> — a write-time Parquet optimization that improves read performance across Spark, SQL & Power BI.</li>
+        <li><strong>Query insights</strong> — built-in DMVs and the Fabric monitoring hub track long-running / resource-heavy queries.</li>
+      </ul>
+      <div class="info-box tip">
+        <span class="icon">💡</span>
+        <div class="info-box-content">Because Warehouse tables are Delta under the hood, maintenance concepts like table optimization overlap heavily with the Lakehouse — the query surface is what differs, not the storage.</div>
+      </div>
+    </div>
+  </div><!-- /page 2 -->
+
+  <!-- ══════════════════ PAGE 3 — KQL DATABASE ══════════════════ -->
+  <div class="page" id="p3">
+    <div class="hero">
+      <div class="hero-eyebrow">Page 03 / Microsoft Fabric — Real-Time Intelligence</div>
+      <h1>The <span>KQL Database</span></h1>
+      <p class="hero-desc">A high-performance database built on the Kusto engine, purpose-built for near-real-time ingestion and analysis of streaming, log, telemetry and time-series data using the Kusto Query Language (KQL).</p>
+      <div class="hero-badges">
+        <span class="badge badge-green">Kusto Engine</span>
+        <span class="badge badge-blue">Streaming Ingest</span>
+        <span class="badge badge-yellow">Time-Series</span>
+        <span class="badge badge-purple">KQL</span>
+      </div>
+    </div>
+
+    <div class="section" id="s3-intro">
+      <div class="section-header"><span class="section-num">01</span><h2>What Is KQL / Kusto?</h2></div>
+      <p><strong style="color:var(--text)">KQL (Kusto Query Language)</strong> is a read-only query language optimized for exploring large volumes of structured, semi-structured (JSON) and time-stamped data — the same engine that powers Azure Data Explorer, Log Analytics, and Application Insights.</p>
+      <p>A <strong style="color:var(--text)">KQL Database</strong> in Fabric lives inside a <strong style="color:var(--text)">Eventhouse</strong> (a workspace container for one or more KQL Databases) and is part of the <strong style="color:var(--text)">Real-Time Intelligence</strong> experience.</p>
+      <div class="card-grid">
+        <div class="card"><div class="card-icon">⚡</div><div class="card-title">Eventhouse</div><div class="card-desc">Top-level item hosting one or more KQL Databases with shared capacity.</div></div>
+        <div class="card"><div class="card-icon">🗃️</div><div class="card-title">KQL Database</div><div class="card-desc">Contains tables, materialized views, functions & update policies.</div></div>
+        <div class="card"><div class="card-icon">📡</div><div class="card-title">Eventstream</div><div class="card-desc">No-code tool to route streaming data (Kafka, Event Hubs, IoT) into a KQL Database.</div></div>
+        <div class="card"><div class="card-icon">📊</div><div class="card-title">Real-Time Dashboards</div><div class="card-desc">Auto-refreshing visuals built directly on top of KQL queries.</div></div>
+      </div>
+    </div>
+
+    <div class="section" id="s3-rta">
+      <div class="section-header"><span class="section-num">02</span><h2>Real-Time Intelligence in Fabric</h2></div>
+      <p>KQL Databases are the storage/query engine behind Fabric's Real-Time Intelligence experience — designed for data that arrives continuously and needs to be queried within seconds of arrival.</p>
+      <div class="flow">
+        <div class="flow-step"><div class="step-label">Source</div><div class="step-name">Kafka / IoT / Logs</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><div class="step-label">Ingest</div><div class="step-name">Eventstream</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step active"><div class="step-label">Store</div><div class="step-name">KQL Database</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><div class="step-label">Consume</div><div class="step-name">Dashboards / Power BI / Alerts</div></div>
+      </div>
+      <div class="info-box note">
+        <span class="icon">📘</span>
+        <div class="info-box-content">A KQL Database can also expose a <strong>OneLake shortcut</strong> so its data is queryable from a Lakehouse/Warehouse, and can shortcut-in Delta tables from a Lakehouse too.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s3-syntax">
+      <div class="section-header"><span class="section-num">03</span><h2>KQL Query Syntax Basics</h2></div>
+      <p>A KQL query starts with a table name and flows through a pipe (<code>|</code>) chain of operators, read top to bottom — similar in feel to a Unix pipeline.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>kql — basic query</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre>StormEvents
+| <span class="kw">where</span> StartTime <span class="op">&gt;=</span> <span class="fn">datetime</span>(<span class="str">2026-01-01</span>)
+| <span class="kw">where</span> State <span class="op">==</span> <span class="str">"TEXAS"</span>
+| <span class="kw">project</span> StartTime, EventType, DamageProperty
+| <span class="kw">sort by</span> DamageProperty <span class="kw">desc</span>
+| <span class="kw">take</span> <span class="num">10</span></pre>
+      </div>
+      <table>
+        <tr><th>Piece</th><th>Meaning</th></tr>
+        <tr><td>Table name</td><td>Where the query starts — e.g. <code>StormEvents</code></td></tr>
+        <tr><td><code>|</code> pipe</td><td>Passes the result of one operator into the next</td></tr>
+        <tr><td>Operator</td><td><code>where</code>, <code>project</code>, <code>summarize</code>, etc.</td></tr>
+        <tr><td>Case sensitivity</td><td>KQL is case-sensitive — table & column names must match exactly</td></tr>
+      </table>
+    </div>
+
+    <div class="section" id="s3-operators">
+      <div class="section-header"><span class="section-num">04</span><h2>Common Operators</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>kql — operator cheatsheet</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="cmt">// Filter rows</span>
+T | <span class="kw">where</span> Level <span class="op">==</span> <span class="str">"Error"</span> <span class="kw">and</span> Timestamp <span class="op">&gt;</span> ago(<span class="num">1</span>h)
+
+<span class="cmt">// Select / rename columns</span>
+T | <span class="kw">project</span> Id, Msg <span class="op">=</span> Message, Timestamp
+
+<span class="cmt">// Add computed column</span>
+T | <span class="kw">extend</span> DurationMs <span class="op">=</span> EndTime <span class="op">-</span> StartTime
+
+<span class="cmt">// Aggregate</span>
+T | <span class="kw">summarize</span> Count <span class="op">=</span> count(), AvgVal <span class="op">=</span> avg(Value) <span class="kw">by</span> bin(Timestamp, <span class="num">1</span>h)
+
+<span class="cmt">// Join two tables</span>
+T1 | <span class="kw">join</span> <span class="kw">kind</span><span class="op">=</span>inner (T2) <span class="kw">on</span> Id
+
+<span class="cmt">// Sort & limit</span>
+T | <span class="kw">sort by</span> Timestamp <span class="kw">desc</span> | <span class="kw">take</span> <span class="num">50</span>
+
+<span class="cmt">// Render a chart directly from a query</span>
+T | <span class="kw">summarize</span> count() <span class="kw">by</span> bin(Timestamp, <span class="num">1</span>h) | <span class="kw">render</span> timechart</pre>
+      </div>
+      <table>
+        <tr><th>Operator</th><th>Does</th></tr>
+        <tr><td>where</td><td>Filters rows by a boolean condition</td></tr>
+        <tr><td>project</td><td>Selects, renames, or computes specific columns</td></tr>
+        <tr><td>extend</td><td>Adds new computed columns, keeping the rest</td></tr>
+        <tr><td>summarize</td><td>Groups & aggregates rows (count, avg, sum, percentile...)</td></tr>
+        <tr><td>join</td><td>Combines rows from two tables on a key</td></tr>
+        <tr><td>bin()</td><td>Buckets a value (often a datetime) into fixed-size intervals</td></tr>
+        <tr><td>render</td><td>Instructs the client to draw a chart (timechart, barchart, piechart...)</td></tr>
+      </table>
+    </div>
+
+    <div class="section" id="s3-ingestion">
+      <div class="section-header"><span class="section-num">05</span><h2>Data Ingestion & Update Policies</h2></div>
+      <p>Data can land in a KQL Database via streaming (Eventstream, Kafka, Event Hubs), batch (pipelines, one-click ingestion of files), or push via SDKs/REST API.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>kql — table & update policy</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="cmt">// Create a raw landing table</span>
+.<span class="fn">create table</span> RawEvents (Payload: <span class="cls">dynamic</span>, IngestedAt: <span class="cls">datetime</span>)
+
+<span class="cmt">// Create the transformed target table</span>
+.<span class="fn">create table</span> ParsedEvents (Id: <span class="cls">string</span>, Level: <span class="cls">string</span>, Timestamp: <span class="cls">datetime</span>)
+
+<span class="cmt">// Function that reshapes raw data</span>
+.<span class="fn">create function</span> TransformEvents() {
+  RawEvents
+  | <span class="kw">extend</span> Id <span class="op">=</span> <span class="fn">tostring</span>(Payload.id),
+           Level <span class="op">=</span> <span class="fn">tostring</span>(Payload.level),
+           Timestamp <span class="op">=</span> <span class="fn">todatetime</span>(Payload.ts)
+  | <span class="kw">project</span> Id, Level, Timestamp
+}
+
+<span class="cmt">// Auto-run the function whenever RawEvents gets new data</span>
+.<span class="fn">alter table</span> ParsedEvents <span class="kw">policy update</span>
+```[{
+  "IsEnabled": <span class="kw">true</span>,
+  "Source": "RawEvents",
+  "Query": "TransformEvents()",
+  "IsTransactional": <span class="kw">true</span>
+}]```</pre>
+      </div>
+      <div class="info-box tip">
+        <span class="icon">💡</span>
+        <div class="info-box-content"><strong>Update policies</strong> are Kusto's equivalent of a streaming ETL trigger — every time rows land in the source table, the function runs automatically and writes the result to the target table.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s3-usecases">
+      <div class="section-header"><span class="section-num">06</span><h2>Use Cases & Best Practices</h2></div>
+      <ul class="styled-list">
+        <li><strong>Log & telemetry analytics</strong> — application logs, infrastructure metrics, diagnostics.</li>
+        <li><strong>IoT & sensor data</strong> — high-volume time-stamped device readings.</li>
+        <li><strong>Security / SIEM style analysis</strong> — anomaly and pattern detection over event streams.</li>
+        <li><strong>Clickstream & user behavior analytics</strong> — near-real-time engagement dashboards.</li>
+      </ul>
+      <div class="info-box warning">
+        <span class="icon">⚠️</span>
+        <div class="info-box-content">KQL Databases are optimized for <strong>read-heavy, append-mostly, time-ordered</strong> data — they are not a substitute for an OLTP system needing frequent row-level updates/deletes.</div>
+      </div>
+    </div>
+  </div><!-- /page 3 -->
+
+  <!-- ══════════════════ PAGE 4 — COMPARISON & CHEATSHEET ══════════════════ -->
+  <div class="page" id="p4">
+    <div class="hero">
+      <div class="hero-eyebrow">Page 04 / Reference</div>
+      <h1>Comparison <span>&amp; Cheatsheet</span></h1>
+      <p class="hero-desc">A quick side-by-side of the three Fabric data store items, plus fast-reference syntax for each query language.</p>
+      <div class="hero-badges">
+        <span class="badge badge-green">Quick Reference</span>
+        <span class="badge badge-blue">Decision Guide</span>
+      </div>
+    </div>
+
+    <div class="section" id="s4-compare">
+      <div class="section-header"><span class="section-num">01</span><h2>Lakehouse vs Warehouse vs KQL Database</h2></div>
+      <div class="table-wrap">
+      <table>
+        <tr><th>Aspect</th><th>Lakehouse</th><th>Warehouse</th><th>KQL Database</th></tr>
+        <tr><td>Primary language</td><td>PySpark / Spark SQL</td><td>T-SQL</td><td>KQL (Kusto Query Language)</td></tr>
+        <tr><td>Storage format</td><td>Delta Parquet (OneLake)</td><td>Delta Parquet (OneLake)</td><td>Kusto native + OneLake shortcuts</td></tr>
+        <tr><td>Write access</td><td>Full via Spark; SQL endpoint is read-only</td><td>Full DDL/DML via T-SQL</td><td>Ingest via streaming/batch; query is read-only</td></tr>
+        <tr><td>Best for</td><td>Data engineering, ML, big batch ETL</td><td>Enterprise BI, SQL-first reporting</td><td>Logs, telemetry, IoT, near-real-time</td></tr>
+        <tr><td>Data shape</td><td>Structured + unstructured (files & tables)</td><td>Structured, relational</td><td>Semi-structured, time-series, high-volume events</td></tr>
+        <tr><td>Latency</td><td>Batch / micro-batch</td><td>Batch / interactive</td><td>Seconds — near real-time</td></tr>
+        <tr><td>Transactions</td><td>Single-table ACID (Delta)</td><td>Multi-table ACID transactions</td><td>Not transactional; append-optimized</td></tr>
+      </table>
+      </div>
+      <div class="info-box tip">
+        <span class="icon">💡</span>
+        <div class="info-box-content">All three sit on <strong>OneLake</strong> and can reference each other via <strong>shortcuts</strong> — pick the item based on the workload and the language your team is most comfortable with, not because the data must live in only one place.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s4-decision">
+      <div class="section-header"><span class="section-num">02</span><h2>Decision Guide</h2></div>
+      <table>
+        <tr><th>If your priority is...</th><th>Choose</th></tr>
+        <tr><td>Flexible schema, ML/Python workflows, cheapest storage of raw + curated data</td><td>Lakehouse</td></tr>
+        <tr><td>Enterprise SQL semantics, governed BI models, complex multi-table transactions</td><td>Warehouse</td></tr>
+        <tr><td>Streaming logs/metrics/IoT that must be queryable within seconds</td><td>KQL Database</td></tr>
+      </table>
+    </div>
+
+    <div class="section" id="s4-sql-quick">
+      <div class="section-header"><span class="section-num">03</span><h2>T-SQL Quick Reference</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>t-sql essentials</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="kw">SELECT</span> col1, col2 <span class="kw">FROM</span> schema.table <span class="kw">WHERE</span> col1 <span class="op">&gt;</span> <span class="num">100</span>;
+<span class="kw">INSERT INTO</span> t (a, b) <span class="kw">VALUES</span> (<span class="num">1</span>, <span class="str">'x'</span>);
+<span class="kw">UPDATE</span> t <span class="kw">SET</span> a <span class="op">=</span> <span class="num">2</span> <span class="kw">WHERE</span> b <span class="op">=</span> <span class="str">'x'</span>;
+<span class="kw">DELETE FROM</span> t <span class="kw">WHERE</span> a <span class="op">=</span> <span class="num">2</span>;
+<span class="kw">CREATE TABLE</span> t (id <span class="cls">INT</span>, name <span class="cls">NVARCHAR</span>(<span class="num">50</span>));
+<span class="kw">ALTER TABLE</span> t <span class="kw">ADD</span> created_at <span class="cls">DATETIME2</span>;</pre>
+      </div>
+    </div>
+
+    <div class="section" id="s4-kql-quick">
+      <div class="section-header"><span class="section-num">04</span><h2>KQL Quick Reference</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>kql essentials</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre>T | <span class="kw">where</span> Col <span class="op">==</span> <span class="str">"value"</span>
+T | <span class="kw">project</span> Col1, Col2
+T | <span class="kw">extend</span> NewCol <span class="op">=</span> Col1 <span class="op">+</span> Col2
+T | <span class="kw">summarize</span> count() <span class="kw">by</span> Col
+T | <span class="kw">join kind</span><span class="op">=</span>inner (T2) <span class="kw">on</span> Key
+T | <span class="kw">sort by</span> Col <span class="kw">desc</span> | <span class="kw">take</span> <span class="num">10</span>
+T | <span class="kw">render</span> timechart</pre>
+      </div>
+    </div>
+
+    <div class="section" id="s4-pyspark-quick">
+      <div class="section-header"><span class="section-num">05</span><h2>PySpark / Delta Quick Reference</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>pyspark essentials</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre>df = spark.<span class="fn">read</span>.<span class="fn">format</span>(<span class="str">"delta"</span>).<span class="fn">table</span>(<span class="str">"my_table"</span>)
+df.<span class="fn">write</span>.<span class="fn">format</span>(<span class="str">"delta"</span>).<span class="fn">mode</span>(<span class="str">"append"</span>).<span class="fn">saveAsTable</span>(<span class="str">"my_table"</span>)
+df.<span class="fn">createOrReplaceTempView</span>(<span class="str">"tmp"</span>)
+spark.<span class="fn">sql</span>(<span class="str">"SELECT * FROM tmp WHERE x > 10"</span>)</pre>
+      </div>
+      <div class="divider"></div>
+      <div class="info-box note">
+        <span class="icon">📘</span>
+        <div class="info-box-content">Bookmark this page — use the sidebar search on each tab to jump straight to a section, and the <strong>COPY</strong> button on any code block to grab the snippet.</div>
+      </div>
+    </div>
+  </div><!-- /page 4 -->
+
+  </main>
+</div><!-- /layout -->
+
+<button id="back-top" onclick="scrollToTop()">↑ TOP</button>
+
+<!-- ── TOC DATA ── -->
+<script>
+const tocData = {
+  p1: {
+    title: "🏞️ Lakehouse",
+    sections: [
+      { label: "Lakehouse", links: [
+        { href: "s1-intro", icon: "📖", text: "What Is a Lakehouse?" },
+        { href: "s1-architecture", icon: "🏗️", text: "Architecture" },
+        { href: "s1-create", icon: "📥", text: "Creating & Loading Data" },
+        { href: "s1-delta", icon: "🔺", text: "Delta Lake Tables & Spark" },
+        { href: "s1-shortcuts", icon: "🔗", text: "Shortcuts & OneLake" },
+        { href: "s1-vs", icon: "⚖️", text: "When to Choose a Lakehouse" },
+      ]}
+    ]
+  },
+  p2: {
+    title: "🏢 Warehouse",
+    sections: [
+      { label: "Warehouse", links: [
+        { href: "s2-intro", icon: "📖", text: "What Is a Data Warehouse?" },
+        { href: "s2-architecture", icon: "🏗️", text: "Architecture" },
+        { href: "s2-tsql", icon: "🧾", text: "T-SQL & Table Creation" },
+        { href: "s2-schema", icon: "📐", text: "Schemas, Views & Procs" },
+        { href: "s2-security", icon: "🛡️", text: "Security" },
+        { href: "s2-perf", icon: "⚡", text: "Performance & Statistics" },
+      ]}
+    ]
+  },
+  p3: {
+    title: "⚡ KQL Database",
+    sections: [
+      { label: "KQL Database", links: [
+        { href: "s3-intro", icon: "📖", text: "What Is KQL / Kusto?" },
+        { href: "s3-rta", icon: "📡", text: "Real-Time Intelligence" },
+        { href: "s3-syntax", icon: "🔤", text: "KQL Query Syntax Basics" },
+        { href: "s3-operators", icon: "🔧", text: "Common Operators" },
+        { href: "s3-ingestion", icon: "📥", text: "Ingestion & Update Policies" },
+        { href: "s3-usecases", icon: "🎯", text: "Use Cases & Best Practices" },
+      ]}
+    ]
+  },
+  p4: {
+    title: "📋 Comparison & Cheatsheet",
+    sections: [
+      { label: "Reference", links: [
+        { href: "s4-compare", icon: "⚖️", text: "Lakehouse vs Warehouse vs KQL" },
+        { href: "s4-decision", icon: "🧭", text: "Decision Guide" },
+        { href: "s4-sql-quick", icon: "🧾", text: "T-SQL Quick Reference" },
+        { href: "s4-kql-quick", icon: "⚡", text: "KQL Quick Reference" },
+        { href: "s4-pyspark-quick", icon: "🐍", text: "PySpark / Delta Quick Reference" },
+      ]}
+    ]
+  }
+};
+
+let currentPage = 'p1';
+
+function buildTOC(pageId) {
+  const data = tocData[pageId];
+  const container = document.getElementById('toc-content');
+  document.getElementById('sidebar-title').textContent = data.title;
+  let html = '';
+  data.sections.forEach(sec => {
+    html += `<div class="toc-section">`;
+    if (sec.label) html += `<div class="toc-section-label">${sec.label}</div>`;
+    sec.links.forEach(l => {
+      html += `<a class="toc-link" onclick="scrollToSection('${l.href}')">
+        <span class="toc-icon">${l.icon}</span>${l.text}
+      </a>`;
+    });
+    html += `</div>`;
+  });
+  container.innerHTML = html;
+}
+
+function switchPage(pageId, tab) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+  tab.classList.add('active');
+  currentPage = pageId;
+  document.getElementById('main').scrollTop = 0;
+  buildTOC(pageId);
+  document.getElementById('toc-search').value = '';
+  closeSidebar();
+}
+
+function scrollToSection(id) {
+  const el = document.getElementById(id);
+  if (el) {
+    document.getElementById('main').scrollTo({ top: el.offsetTop - 20, behavior: 'smooth' });
+    document.querySelectorAll('.toc-link').forEach(l => l.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+  }
+  closeSidebar();
+}
+
+function scrollToTop() {
+  document.getElementById('main').scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.getElementById('main').addEventListener('scroll', function() {
+  const btn = document.getElementById('back-top');
+  btn.classList.toggle('visible', this.scrollTop > 400);
+});
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+function filterTOC(q) {
+  q = q.toLowerCase();
+  document.querySelectorAll('.toc-link').forEach(link => {
+    link.style.display = link.textContent.toLowerCase().includes(q) ? 'flex' : 'none';
+  });
+  document.querySelectorAll('.toc-section-label').forEach(label => {
+    const visible = [...label.parentElement.querySelectorAll('.toc-link')].some(l => l.style.display !== 'none');
+    label.style.display = visible ? '' : 'none';
+  });
+}
+
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  navigator.clipboard.writeText(pre.innerText).then(() => {
+    btn.textContent = 'COPIED!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+buildTOC('p1');
+</script>
+
+<!-- ══════════ Learning Hub integration (injected) ══════════ -->
+<style>
+  #hub-back-btn {
+    position: fixed; top: 10px; right: 16px; z-index: 999;
+    display: flex; align-items: center; gap: 6px;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 12px; font-weight: 600; letter-spacing: .03em;
+    color: #0a0a0a; background: #00ff88;
+    padding: 7px 13px; border-radius: 20px; text-decoration: none;
+    box-shadow: 0 2px 14px rgba(0,255,136,.35);
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  #hub-back-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 18px rgba(0,255,136,.5); }
+  .search-highlight-pulse {
+    animation: hubPulse 1.4s ease-out 2;
+    border-radius: 10px;
+  }
+  @keyframes hubPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(0,255,136,.55); }
+    70%  { box-shadow: 0 0 0 14px rgba(0,255,136,0); }
+    100% { box-shadow: 0 0 0 0 rgba(0,255,136,0); }
+  }
+  @media (max-width: 640px) { #hub-back-btn span.lbl { display: none; } }
+</style>
+<a id="hub-back-btn" href="../index.html" title="Back to Learning Hub">&#8592; <span class="lbl">Hub</span></a>
+<script>
+(function () {
+  function getParam(name) {
+    return new URLSearchParams(window.location.search).get(name);
+  }
+  function go() {
+    var page = getParam('page');
+    var nb = getParam('nb');
+    var sec = getParam('sec');
+    try {
+      if (page && typeof switchPage === 'function') {
+        var tab = document.querySelector('.page-tab[onclick*="\'' + page + '\'"]');
+        if (tab) switchPage(page, tab);
+      }
+    } catch (e) { /* noop */ }
+    try {
+      if (nb && typeof openNotebook === 'function') {
+        var item = document.querySelector('.toc-item[onclick*="\'' + nb + '\'"]');
+        document.querySelectorAll('.notebook-page').forEach(function(p){ p.classList.remove('active'); });
+        var target = document.getElementById(nb);
+        if (target) target.classList.add('active');
+        document.querySelectorAll('.toc-item').forEach(function(el){ el.classList.remove('active'); });
+        if (item) item.classList.add('active');
+      }
+    } catch (e) { /* noop */ }
+    if (sec) {
+      setTimeout(function () {
+        var el = document.getElementById(sec);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          el.classList.add('search-highlight-pulse');
+          setTimeout(function () { el.classList.remove('search-highlight-pulse'); }, 3000);
+        }
+      }, 200);
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', go);
+  } else {
+    go();
+  }
+})();
+</script>
+
+</body>
+</html>

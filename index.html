@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Learning Hub — All Notes</title>
+<meta name="description" content="A single searchable home for all study notes.">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header id="topbar">
+  <div class="logo">learning_hub</div>
+  <div class="topbar-stats">
+    <span><b id="stat-modules">10</b> modules</span>
+    <span><b id="stat-topics">253</b> topics</span>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="hero-eyebrow">&#9679; personal knowledge base</div>
+    <h1>Search everything <span>you've learned</span>.</h1>
+    <p class="sub">One place for every set of notes — type a topic, tool, or command and jump straight to it.</p>
+
+    <div class="search-wrap">
+      <div class="search-box" id="search-box">
+        <span class="prompt">&gt;</span>
+        <input id="search-input" type="text" placeholder="Search topics… e.g. &quot;joins&quot;, &quot;dockerfile&quot;, &quot;window functions&quot;" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="results-panel">
+        <span class="kbd-hint">/ to focus</span>
+      </div>
+      <div class="results-panel" id="results-panel" role="listbox"></div>
+    </div>
+
+    <div id="continue-wrap"></div>
+  </section>
+
+  <section class="modules-section">
+    <div class="modules-header">
+      <h2><b id="stat-modules-2">10</b> modules</h2>
+      <div class="modules-filter" id="modules-filter"></div>
+    </div>
+    <div class="modules-grid" id="modules-grid"></div>
+  </section>
+</main>
+
+<footer>
+  built for continuous learning · add a note file + an entry in <b>assets/courses.json</b>, then run <b>node build-index.js</b>
+</footer>
+
+<script src="assets/search-index.js"></script>
+<script src="assets/app.js"></script>
+<script>
+  document.getElementById('stat-modules').textContent = (window.COURSES || []).length;
+  document.getElementById('stat-modules-2').textContent = (window.COURSES || []).length;
+  document.getElementById('stat-topics').textContent = (window.SEARCH_INDEX || []).length;
+</script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+[
+  {
+    "id": "python-oops",
+    "file": "python-oops-notes.html",
+    "title": "Python & OOP",
+    "subtitle": "Core language, data structures, functions & object-oriented design",
+    "icon": "🐍",
+    "color": "#ffd60a",
+    "tags": ["python", "oop", "programming"]
+  },
+  {
+    "id": "git-github",
+    "file": "git-github-notes.html",
+    "title": "Git & GitHub",
+    "subtitle": "Version control, branching, merging & collaboration workflows",
+    "icon": "🐙",
+    "color": "#f78166",
+    "tags": ["git", "github", "vcs"]
+  },
+  {
+    "id": "shell-scripting",
+    "file": "shell-scripting-notes.html",
+    "title": "Shell Scripting",
+    "subtitle": "Bash fundamentals, control flow, text processing & automation",
+    "icon": "💻",
+    "color": "#58a6ff",
+    "tags": ["shell", "bash", "linux"]
+  },
+  {
+    "id": "docker",
+    "file": "docker-complete-notes.html",
+    "title": "Docker",
+    "subtitle": "Images, containers, networking, volumes & Compose",
+    "icon": "🐳",
+    "color": "#00ff88",
+    "tags": ["docker", "containers", "devops"]
+  },
+  {
+    "id": "azure-sql",
+    "file": "azure-sql-server-notes.html",
+    "title": "Azure SQL & SQL Server",
+    "subtitle": "SQL fundamentals, deployment models, performance & tuning",
+    "icon": "🗄️",
+    "color": "#58a6ff",
+    "tags": ["sql", "azure", "database"]
+  },
+  {
+    "id": "azure-synapse",
+    "file": "azure-synapse-notes.html",
+    "title": "Azure Synapse Analytics",
+    "subtitle": "SQL pools, Spark pools, pipelines & security",
+    "icon": "🔷",
+    "color": "#c792ea",
+    "tags": ["synapse", "azure", "analytics"]
+  },
+  {
+    "id": "databricks-pyspark-notes",
+    "file": "databricks_pyspark_notes.html",
+    "title": "Databricks & PySpark",
+    "subtitle": "Spark clusters, ADLS, dbutils, Delta Lake & streaming",
+    "icon": "🧱",
+    "color": "#ff6b6b",
+    "tags": ["databricks", "pyspark", "spark", "delta lake"]
+  },
+  {
+    "id": "pyspark-complete",
+    "file": "pyspark-databricks-complete.html",
+    "title": "PySpark — Notebook Series",
+    "subtitle": "22-part notebook run-through: RDDs to MLlib & streaming",
+    "icon": "📘",
+    "color": "#ffab40",
+    "tags": ["pyspark", "spark", "notebooks"]
+  },
+  {
+    "id": "lakehouse-warehouse-kql",
+    "file": "lakehouse-warehouse-kql-notes.html",
+    "title": "Lakehouse, Warehouse & KQL",
+    "subtitle": "Microsoft Fabric lakehouse, warehouse & Kusto Query Language",
+    "icon": "🏞️",
+    "color": "#00ff88",
+    "tags": ["fabric", "lakehouse", "kql", "onelake"]
+  },
+  {
+    "id": "dbt",
+    "file": "dbt-notes.html",
+    "title": "dbt (Data Build Tool)",
+    "subtitle": "Models, Jinja, macros, snapshots, testing & docs",
+    "icon": "🔺",
+    "color": "#ff6b6b",
+    "tags": ["dbt", "elt", "analytics engineering"]
+  }
+]

@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>dbt (Data Build Tool) — Complete Notes</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg: #0a0a0a;
+    --bg2: #111111;
+    --bg3: #161616;
+    --border: #222222;
+    --green: #ff694b;
+    --green-dim: #e0533a;
+    --green-glow: rgba(255,105,75,0.15);
+    --green-subtle: rgba(255,105,75,0.07);
+    --yellow: #ffd60a;
+    --blue: #58a6ff;
+    --red: #ff6b6b;
+    --purple: #c792ea;
+    --orange: #ffab40;
+    --text: #e0e0e0;
+    --text-dim: #888;
+    --text-faint: #444;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Inter', sans-serif;
+    --sidebar-w: 280px;
+    --topnav-h: 52px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; line-height: 1.7; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+  /* ── TOP NAV (PAGES) ── */
+  #topnav {
+    position: fixed; top: 0; left: 0; right: 0; height: var(--topnav-h);
+    background: var(--bg2); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; z-index: 200; overflow-x: auto;
+    scrollbar-width: none;
+  }
+  #topnav::-webkit-scrollbar { display: none; }
+
+  .nav-logo {
+    font-family: var(--mono); font-size: 13px; font-weight: 700;
+    color: var(--green); letter-spacing: .08em; text-transform: uppercase;
+    padding: 0 20px; white-space: nowrap; display: flex; align-items: center; gap: 8px;
+    border-right: 1px solid var(--border); flex-shrink: 0;
+  }
+  .nav-logo::before { content: '>'; animation: blink 1.1s step-end infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  .page-tabs { display: flex; align-items: stretch; height: var(--topnav-h); }
+
+  .page-tab {
+    display: flex; align-items: center; gap: 7px;
+    padding: 0 18px; font-family: var(--sans); font-size: 13px;
+    color: var(--text-dim); cursor: pointer; white-space: nowrap;
+    border-bottom: 2px solid transparent; border-right: 1px solid var(--border);
+    transition: all .18s; user-select: none; flex-shrink: 0;
+  }
+  .page-tab:hover { color: var(--text); background: var(--green-subtle); }
+  .page-tab.active { color: var(--green); border-bottom-color: var(--green); background: var(--green-subtle); }
+  .page-tab .tab-icon { font-size: 14px; }
+  .page-tab .tab-num {
+    font-family: var(--mono); font-size: 10px; color: var(--text-faint);
+    background: var(--bg3); border: 1px solid var(--border);
+    padding: 1px 5px; border-radius: 3px;
+  }
+  .page-tab.active .tab-num { color: var(--green); border-color: rgba(255,105,75,.3); }
+
+  /* ── LAYOUT ── */
+  #layout {
+    display: flex; margin-top: var(--topnav-h); height: calc(100vh - var(--topnav-h)); overflow: hidden;
+  }
+
+  /* ── SIDEBAR ── */
+  #sidebar {
+    width: var(--sidebar-w); background: var(--bg2);
+    border-right: 1px solid var(--border); overflow-y: auto;
+    flex-shrink: 0; transition: transform .3s;
+  }
+  #sidebar::-webkit-scrollbar { width: 4px; }
+  #sidebar::-webkit-scrollbar-track { background: var(--bg2); }
+  #sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .sidebar-header {
+    padding: 20px 20px 16px; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--bg2); z-index: 1;
+  }
+  .sidebar-page-title {
+    font-family: var(--mono); font-size: 11px; font-weight: 700;
+    color: var(--green); letter-spacing: .1em; text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .sidebar-search { position: relative; }
+  .sidebar-search input {
+    width: 100%; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text); font-family: var(--mono);
+    font-size: 12px; padding: 7px 10px 7px 30px; outline: none; transition: border-color .2s;
+  }
+  .sidebar-search input:focus { border-color: var(--green); }
+  .sidebar-search input::placeholder { color: var(--text-faint); }
+  .sidebar-search::before {
+    content: '⌕'; position: absolute; left: 9px; top: 50%;
+    transform: translateY(-50%); color: var(--text-dim); font-size: 14px; pointer-events: none;
+  }
+
+  .toc-section { padding: 8px 0; }
+  .toc-section-label {
+    font-family: var(--mono); font-size: 10px; font-weight: 600;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--text-faint);
+    padding: 8px 20px 4px;
+  }
+  .toc-link {
+    display: flex; align-items: center; gap: 8px; padding: 6px 20px;
+    color: var(--text-dim); text-decoration: none; font-size: 13px;
+    font-family: var(--sans); border-left: 2px solid transparent;
+    transition: all .15s; cursor: pointer;
+  }
+  .toc-link:hover, .toc-link.active {
+    color: var(--green); border-left-color: var(--green); background: var(--green-subtle);
+  }
+  .toc-link .toc-icon { font-size: 11px; width: 16px; text-align: center; flex-shrink: 0; }
+
+  /* ── MAIN CONTENT ── */
+  #main {
+    flex: 1; overflow-y: auto; padding: 0 48px 80px; min-width: 0;
+  }
+  #main::-webkit-scrollbar { width: 6px; }
+  #main::-webkit-scrollbar-track { background: var(--bg); }
+  #main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ── PAGES ── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── HERO ── */
+  .hero { padding: 64px 0 48px; border-bottom: 1px solid var(--border); margin-bottom: 56px; }
+  .hero-eyebrow {
+    font-family: var(--mono); font-size: 12px; color: var(--green);
+    letter-spacing: .15em; text-transform: uppercase; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .hero-eyebrow::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(to right, var(--green-dim), transparent); max-width: 200px;
+  }
+  .hero h1 {
+    font-family: var(--mono); font-size: clamp(32px, 4vw, 58px);
+    font-weight: 700; line-height: 1.1; letter-spacing: -.02em; color: #fff; margin-bottom: 18px;
+  }
+  .hero h1 span { color: var(--green); text-shadow: 0 0 40px var(--green-glow); }
+  .hero-desc { font-size: 15px; color: var(--text-dim); max-width: 640px; line-height: 1.8; margin-bottom: 28px; }
+  .hero-badges { display: flex; gap: 10px; flex-wrap: wrap; }
+  .badge { font-family: var(--mono); font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 4px; letter-spacing: .06em; }
+  .badge-green { background: var(--green-subtle); color: var(--green); border: 1px solid rgba(255,105,75,.25); }
+  .badge-blue { background: rgba(88,166,255,.08); color: var(--blue); border: 1px solid rgba(88,166,255,.2); }
+  .badge-yellow { background: rgba(255,214,10,.07); color: var(--yellow); border: 1px solid rgba(255,214,10,.2); }
+  .badge-purple { background: rgba(199,146,234,.08); color: var(--purple); border: 1px solid rgba(199,146,234,.2); }
+
+  /* ── SECTIONS ── */
+  .section { margin-bottom: 64px; scroll-margin-top: 20px; }
+  .section-header {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 28px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+  }
+  .section-num {
+    font-family: var(--mono); font-size: 11px; color: var(--green);
+    background: var(--green-subtle); border: 1px solid rgba(255,105,75,.2);
+    padding: 3px 8px; border-radius: 4px; font-weight: 700; letter-spacing: .08em; flex-shrink: 0;
+  }
+  .section h2 { font-family: var(--mono); font-size: 22px; font-weight: 700; color: #fff; letter-spacing: -.01em; }
+  .section h3 {
+    font-family: var(--sans); font-size: 16px; font-weight: 600; color: var(--text);
+    margin: 28px 0 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .section h3::before { content: '//'; font-family: var(--mono); color: var(--green-dim); font-size: 13px; font-weight: 400; }
+  .section p { color: var(--text-dim); margin-bottom: 14px; max-width: 760px; }
+
+  /* ── CODE BLOCK ── */
+  .code-block { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin: 16px 0; }
+  .code-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; background: var(--bg2); border-bottom: 1px solid var(--border);
+    font-family: var(--mono); font-size: 11px; color: var(--text-faint);
+  }
+  .code-header .dots { display: flex; gap: 6px; }
+  .code-header .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-r { background: #ff5f57; } .dot-y { background: #febc2e; } .dot-g { background: #28c840; }
+  .copy-btn {
+    background: none; border: 1px solid var(--border); color: var(--text-faint);
+    font-family: var(--mono); font-size: 10px; padding: 3px 8px;
+    border-radius: 4px; cursor: pointer; transition: all .15s; letter-spacing: .06em;
+  }
+  .copy-btn:hover { border-color: var(--green); color: var(--green); }
+  .copy-btn.copied { border-color: var(--green); color: var(--green); }
+  .code-block pre {
+    padding: 20px; overflow-x: auto; font-family: var(--mono);
+    font-size: 13.5px; line-height: 1.8; color: var(--text);
+  }
+  .code-block pre::-webkit-scrollbar { height: 4px; }
+  .code-block pre::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .kw { color: var(--purple); }
+  .fn { color: var(--blue); }
+  .str { color: var(--yellow); }
+  .cmt { color: var(--text-faint); font-style: italic; }
+  .num { color: var(--orange); }
+  .cls { color: var(--green); }
+  .op  { color: var(--red); }
+  .out { color: var(--purple); }
+  .dec { color: var(--orange); }
+
+  /* ── INFO BOXES ── */
+  .info-box {
+    border-radius: 8px; padding: 16px 18px; margin: 16px 0;
+    display: flex; gap: 12px; align-items: flex-start; font-size: 14px; max-width: 760px;
+  }
+  .info-box .icon { font-size: 16px; flex-shrink: 0; margin-top: 2px; }
+  .info-box-content { color: var(--text-dim); line-height: 1.7; }
+  .info-box-content strong { color: var(--text); font-weight: 600; }
+  .tip { background: rgba(255,105,75,.06); border: 1px solid rgba(255,105,75,.2); }
+  .warning { background: rgba(255,214,10,.06); border: 1px solid rgba(255,214,10,.2); }
+  .note { background: rgba(88,166,255,.06); border: 1px solid rgba(88,166,255,.2); }
+  .danger { background: rgba(255,107,107,.06); border: 1px solid rgba(255,107,107,.2); }
+
+  /* ── TABLE ── */
+  .table-wrap { overflow-x: auto; margin: 16px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-family: var(--mono); }
+  th { background: var(--bg3); color: var(--green); font-weight: 600; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+  td { padding: 9px 14px; border-bottom: 1px solid var(--border); color: var(--text-dim); vertical-align: top; }
+  td:first-child { color: var(--green-dim); font-weight: 500; }
+  tr:hover td { background: var(--green-subtle); }
+
+  /* ── CARDS ── */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin: 16px 0; }
+  .card { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 16px; transition: border-color .2s; }
+  .card:hover { border-color: var(--green); }
+  .card .card-icon { font-size: 20px; margin-bottom: 8px; }
+  .card .card-title { font-weight: 600; font-size: 14px; color: var(--text); margin-bottom: 4px; }
+  .card .card-desc { font-size: 12.5px; color: var(--text-dim); line-height: 1.6; }
+
+  /* ── STYLED LIST ── */
+  .styled-list { list-style: none; padding: 0; margin: 12px 0; max-width: 760px; }
+  .styled-list li { padding: 7px 0 7px 22px; color: var(--text-dim); font-size: 14px; border-bottom: 1px solid var(--border); position: relative; }
+  .styled-list li:last-child { border-bottom: none; }
+  .styled-list li::before { content: '▸'; position: absolute; left: 0; color: var(--green); font-size: 11px; top: 9px; }
+  .styled-list li strong { color: var(--text); }
+
+  /* ── FLOW ── */
+  .flow { display: flex; align-items: center; gap: 0; margin: 20px 0; flex-wrap: wrap; max-width: 760px; }
+  .flow-step { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; text-align: center; min-width: 110px; }
+  .flow-step .step-label { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 4px; color: var(--text-faint); }
+  .flow-step .step-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .flow-step.active { border-color: var(--green); background: var(--green-subtle); }
+  .flow-step.active .step-label { color: var(--green); }
+  .flow-step.active .step-name { color: var(--green); }
+  .flow-arrow { font-family: var(--mono); color: var(--text-faint); font-size: 18px; padding: 0 8px; flex-shrink: 0; }
+
+  code { font-family: var(--mono); font-size: 12.5px; background: var(--bg3); border: 1px solid var(--border); color: var(--green-dim); padding: 1px 6px; border-radius: 4px; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+  /* ── BACK TOP ── */
+  #back-top { position: fixed; bottom: 28px; right: 28px; background: var(--bg2); border: 1px solid var(--border); color: var(--green); font-family: var(--mono); font-size: 12px; padding: 8px 14px; border-radius: 6px; cursor: pointer; opacity: 0; transition: opacity .3s, border-color .2s; z-index: 50; }
+  #back-top.visible { opacity: 1; }
+  #back-top:hover { border-color: var(--green); background: var(--green-subtle); }
+
+  /* ── HAMBURGER ── */
+  #menu-toggle { display: none; position: fixed; top: 10px; right: 12px; z-index: 300; background: var(--bg2); border: 1px solid var(--border); color: var(--green); font-size: 18px; width: 34px; height: 34px; border-radius: 6px; cursor: pointer; align-items: center; justify-content: center; }
+  #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 90; margin-top: var(--topnav-h); }
+
+  @media (max-width: 900px) {
+    #sidebar { position: fixed; top: var(--topnav-h); bottom: 0; left: 0; z-index: 100; transform: translateX(-100%); }
+    #sidebar.open { transform: translateX(0); }
+    #menu-toggle { display: flex; }
+    #overlay.show { display: block; }
+    #main { padding: 24px 20px 60px; }
+    .page-tab span.tab-label { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP PAGE NAV -->
+<nav id="topnav">
+  <div class="nav-logo">dbt Notes</div>
+  <div class="page-tabs">
+    <div class="page-tab active" onclick="switchPage('p1',this)">
+      <span class="tab-icon">🧱</span><span class="tab-label">Core Concepts</span><span class="tab-num">01</span>
+    </div>
+    <div class="page-tab" onclick="switchPage('p2',this)">
+      <span class="tab-icon">🔗</span><span class="tab-label">Modeling & Jinja</span><span class="tab-num">02</span>
+    </div>
+    <div class="page-tab" onclick="switchPage('p3',this)">
+      <span class="tab-icon">✅</span><span class="tab-label">Testing & Docs</span><span class="tab-num">03</span>
+    </div>
+    <div class="page-tab" onclick="switchPage('p4',this)">
+      <span class="tab-icon">⚙️</span><span class="tab-label">Ops & Cheatsheet</span><span class="tab-num">04</span>
+    </div>
+  </div>
+</nav>
+
+<button id="menu-toggle" onclick="toggleSidebar()">☰</button>
+<div id="overlay" onclick="closeSidebar()"></div>
+
+<div id="layout">
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-page-title" id="sidebar-title">🧱 Core Concepts</div>
+      <div class="sidebar-search">
+        <input type="text" id="toc-search" placeholder="Filter sections…" oninput="filterTOC(this.value)">
+      </div>
+    </div>
+    <div id="toc-content"></div>
+  </aside>
+
+  <!-- MAIN -->
+  <main id="main">
+
+  <!-- ══════════════════ PAGE 1 — CORE CONCEPTS ══════════════════ -->
+  <div class="page active" id="p1">
+    <div class="hero">
+      <div class="hero-eyebrow">Page 01 / dbt Fundamentals</div>
+      <h1>dbt <span>Core Concepts</span></h1>
+      <p class="hero-desc">dbt (data build tool) lets analytics engineers transform data already loaded into a warehouse by writing modular, version-controlled <strong>SELECT</strong> statements — dbt handles dependency ordering, materialization, testing, and documentation. It's the "T" in ELT.</p>
+      <div class="hero-badges">
+        <span class="badge badge-green">SQL-first</span>
+        <span class="badge badge-blue">Version Controlled</span>
+        <span class="badge badge-yellow">ELT</span>
+        <span class="badge badge-purple">Jinja Templating</span>
+      </div>
+    </div>
+
+    <div class="section" id="s1-intro">
+      <div class="section-header"><span class="section-num">01</span><h2>What Is dbt?</h2></div>
+      <p>dbt does not extract or load data — it assumes raw data already sits in your warehouse (Snowflake, BigQuery, Databricks, Redshift, Postgres, Fabric, etc). dbt's job is the <strong style="color:var(--text)">transform</strong> step: it compiles Jinja+SQL <strong style="color:var(--text)">models</strong> into plain SQL, runs them in dependency order, and materializes the results as tables or views.</p>
+      <div class="card-grid">
+        <div class="card"><div class="card-icon">📝</div><div class="card-title">Just SELECT statements</div><div class="card-desc">A model is a .sql file with a single SELECT — dbt wraps it in the right DDL/DML.</div></div>
+        <div class="card"><div class="card-icon">🔀</div><div class="card-title">Dependency graph (DAG)</div><div class="card-desc">ref() calls between models build an automatic execution order.</div></div>
+        <div class="card"><div class="card-icon">🧪</div><div class="card-title">Built-in testing</div><div class="card-desc">Assert not_null, unique, relationships and custom business rules.</div></div>
+        <div class="card"><div class="card-icon">📚</div><div class="card-title">Auto-generated docs</div><div class="card-desc">A searchable docs site with column descriptions and lineage graph.</div></div>
+      </div>
+      <div class="info-box note">
+        <span class="icon">📘</span>
+        <div class="info-box-content"><strong>dbt Core</strong> is the free, open-source CLI. <strong>dbt Cloud</strong> adds a hosted IDE, job scheduler, and semantic layer on top of the same core engine.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s1-workflow">
+      <div class="section-header"><span class="section-num">02</span><h2>Where dbt Fits: ELT vs ETL</h2></div>
+      <p>Traditional ETL transforms data before loading. Modern ELT loads raw data first (via Fivetran, Airbyte, ADF, etc.) and transforms it inside the warehouse afterward — that in-warehouse transform layer is where dbt lives.</p>
+      <div class="flow">
+        <div class="flow-step"><div class="step-label">Extract</div><div class="step-name">Source Systems</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><div class="step-label">Load</div><div class="step-name">Raw / Staging</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step active"><div class="step-label">Transform</div><div class="step-name">dbt Models</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><div class="step-label">Serve</div><div class="step-name">BI / Analytics</div></div>
+      </div>
+      <h3>Typical model layering</h3>
+      <ul class="styled-list">
+        <li><strong>staging (stg_)</strong> — 1:1 with a source table; light renaming, casting, no joins.</li>
+        <li><strong>intermediate (int_)</strong> — joins/aggregations that aren't yet final, reused by multiple marts.</li>
+        <li><strong>marts (fct_ / dim_)</strong> — business-facing fact and dimension tables consumed by BI tools.</li>
+      </ul>
+    </div>
+
+    <div class="section" id="s1-project">
+      <div class="section-header"><span class="section-num">03</span><h2>Project Structure</h2></div>
+      <p>Running <code>dbt init my_project</code> scaffolds a standard folder layout. Everything is plain text, so the whole project lives in Git.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>project layout</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre>my_project/
+├── dbt_project.yml       <span class="cmt"># project-level config</span>
+├── packages.yml          <span class="cmt"># declared package dependencies</span>
+├── profiles.yml          <span class="cmt"># connection creds (usually ~/.dbt/)</span>
+├── models/
+│   ├── staging/
+│   │   ├── stg_orders.sql
+│   │   └── stg_customers.sql
+│   ├── intermediate/
+│   │   └── int_orders_joined.sql
+│   ├── marts/
+│   │   ├── fct_orders.sql
+│   │   └── dim_customers.sql
+│   └── sources.yml       <span class="cmt"># source table declarations</span>
+├── seeds/                <span class="cmt"># static CSVs loaded as tables</span>
+├── snapshots/            <span class="cmt"># SCD Type 2 history tracking</span>
+├── macros/                <span class="cmt"># reusable Jinja functions</span>
+├── tests/                <span class="cmt"># singular (custom) SQL tests</span>
+└── analyses/             <span class="cmt"># ad-hoc compiled SQL, not run/materialized</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="s1-models">
+      <div class="section-header"><span class="section-num">04</span><h2>Models & Materializations</h2></div>
+      <p>A model is a <code>.sql</code> file containing one SELECT statement. The <strong style="color:var(--text)">materialization</strong> controls how dbt persists it in the warehouse.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>models/marts/fct_orders.sql</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="op">{{</span> <span class="fn">config</span>(materialized<span class="op">=</span><span class="str">'table'</span>) <span class="op">}}</span>
+
+<span class="kw">SELECT</span>
+  o.order_id,
+  o.customer_id,
+  c.customer_name,
+  o.order_total,
+  o.order_date
+<span class="kw">FROM</span> <span class="op">{{</span> <span class="fn">ref</span>(<span class="str">'stg_orders'</span>) <span class="op">}}</span> o
+<span class="kw">LEFT JOIN</span> <span class="op">{{</span> <span class="fn">ref</span>(<span class="str">'stg_customers'</span>) <span class="op">}}</span> c
+  <span class="kw">ON</span> o.customer_id <span class="op">=</span> c.customer_id</pre>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Materialization</th><th>What it does</th><th>Best for</th></tr>
+          <tr><td>view</td><td>CREATE VIEW — query re-runs every time it's selected</td><td>Lightweight staging models, fast iteration</td></tr>
+          <tr><td>table</td><td>Full CREATE TABLE AS, rebuilt completely on every run</td><td>Marts that are queried often, smaller/medium datasets</td></tr>
+          <tr><td>incremental</td><td>Only inserts/merges new or changed rows on subsequent runs</td><td>Large, append-heavy fact tables</td></tr>
+          <tr><td>ephemeral</td><td>Not materialized at all — inlined as a CTE into downstream models</td><td>Small reusable logic that shouldn't clutter the warehouse</td></tr>
+        </table>
+      </div>
+      <div class="info-box tip">
+        <span class="icon">💡</span>
+        <div class="info-box-content">Set a sensible default in <code>dbt_project.yml</code> (e.g. <code>view</code> for staging, <code>table</code> for marts) and override per-model with a <code>config()</code> block only where needed.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s1-config">
+      <div class="section-header"><span class="section-num">05</span><h2>dbt_project.yml & Config Hierarchy</h2></div>
+      <p>Config can be set at the project level, folder level, or individual model level — the most specific setting wins.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>dbt_project.yml</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="dec">name</span>: <span class="str">'my_project'</span>
+<span class="dec">version</span>: <span class="str">'1.0.0'</span>
+<span class="dec">profile</span>: <span class="str">'my_project'</span>
+
+<span class="dec">model-paths</span>: [<span class="str">"models"</span>]
+<span class="dec">seed-paths</span>: [<span class="str">"seeds"</span>]
+<span class="dec">snapshot-paths</span>: [<span class="str">"snapshots"</span>]
+
+<span class="dec">models</span>:
+  <span class="dec">my_project</span>:
+    <span class="dec">staging</span>:
+      <span class="dec">+materialized</span>: <span class="str">view</span>
+    <span class="dec">marts</span>:
+      <span class="dec">+materialized</span>: <span class="str">table</span>
+      <span class="dec">+schema</span>: <span class="str">marts</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="s1-cli">
+      <div class="section-header"><span class="section-num">06</span><h2>dbt Core vs dbt Cloud</h2></div>
+      <table>
+        <tr><th>Good fit (dbt Core)</th><th>Good fit (dbt Cloud)</th></tr>
+        <tr><td>Teams comfortable managing their own CI/CD & orchestration</td><td>Teams wanting a hosted IDE, scheduler, and job UI out of the box</td></tr>
+        <tr><td>Full control, free & open-source, run anywhere Python runs</td><td>Built-in semantic layer, discovery API, and native Git integration</td></tr>
+        <tr><td>Existing Airflow / Dagster / GitHub Actions orchestration</td><td>Smaller teams that don't want to host their own scheduler</td></tr>
+      </table>
+    </div>
+  </div><!-- /page 1 -->
+
+  <!-- ══════════════════ PAGE 2 — MODELING & JINJA ══════════════════ -->
+  <div class="page" id="p2">
+    <div class="hero">
+      <div class="hero-eyebrow">Page 02 / Building Blocks</div>
+      <h1>Modeling <span>& Jinja</span></h1>
+      <p class="hero-desc">ref(), source(), Jinja control flow, macros, seeds, snapshots and packages — the reusable building blocks that turn plain SQL into a maintainable, DRY transformation layer.</p>
+      <div class="hero-badges">
+        <span class="badge badge-green">ref() / source()</span>
+        <span class="badge badge-blue">Jinja</span>
+        <span class="badge badge-yellow">Macros</span>
+        <span class="badge badge-purple">Snapshots</span>
+      </div>
+    </div>
+
+    <div class="section" id="s2-ref-source">
+      <div class="section-header"><span class="section-num">01</span><h2>ref() & source()</h2></div>
+      <p>Never hardcode a table name. <code>ref()</code> points to another dbt model; <code>source()</code> points to a raw table declared in a <code>sources.yml</code> file. Both let dbt build the dependency graph and rewrite the correct fully-qualified name for the target environment.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>models/sources.yml</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="dec">version</span>: <span class="num">2</span>
+
+<span class="dec">sources</span>:
+  <span class="op">-</span> <span class="dec">name</span>: <span class="str">raw</span>
+    <span class="dec">database</span>: <span class="str">analytics_raw</span>
+    <span class="dec">schema</span>: <span class="str">ecommerce</span>
+    <span class="dec">tables</span>:
+      <span class="op">-</span> <span class="dec">name</span>: <span class="str">orders</span>
+      <span class="op">-</span> <span class="dec">name</span>: <span class="str">customers</span></pre>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>models/staging/stg_orders.sql</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="kw">SELECT</span>
+  id <span class="kw">AS</span> order_id,
+  customer_id,
+  status,
+  created_at <span class="kw">AS</span> order_date
+<span class="kw">FROM</span> <span class="op">{{</span> <span class="fn">source</span>(<span class="str">'raw'</span>, <span class="str">'orders'</span>) <span class="op">}}</span></pre>
+      </div>
+      <div class="info-box warning">
+        <span class="icon">⚠️</span>
+        <div class="info-box-content">A model referenced with <code>ref()</code> that is never actually built, or a <code>source()</code> table that doesn't exist, will fail at <code>dbt compile</code> / <code>dbt run</code> — this is what makes the DAG reliable.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s2-jinja">
+      <div class="section-header"><span class="section-num">02</span><h2>Jinja Basics</h2></div>
+      <p>dbt compiles Jinja (<code>{{ }}</code> expressions, <code>{% %}</code> statements) into raw SQL before sending it to the warehouse. This gives you variables, loops, conditionals and functions inside SQL.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>jinja control flow</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="cmt">-- set a variable</span>
+<span class="op">{%</span> <span class="kw">set</span> payment_methods <span class="op">=</span> [<span class="str">'credit_card'</span>, <span class="str">'paypal'</span>, <span class="str">'bank_transfer'</span>] <span class="op">%}</span>
+
+<span class="kw">SELECT</span>
+  order_id,
+  <span class="op">{%</span> <span class="kw">for</span> method <span class="kw">in</span> payment_methods <span class="op">%}</span>
+  <span class="kw">SUM</span>(<span class="kw">CASE WHEN</span> payment_method <span class="op">=</span> <span class="str">'{{ method }}'</span> <span class="kw">THEN</span> amount <span class="kw">END</span>) <span class="kw">AS</span> {{ method }}_total
+  <span class="op">{%</span> <span class="kw">if not</span> loop.last <span class="op">%}</span>,<span class="op">{%</span> <span class="kw">endif</span> <span class="op">%}</span>
+  <span class="op">{%</span> <span class="kw">endfor</span> <span class="op">%}</span>
+<span class="kw">FROM</span> <span class="op">{{</span> <span class="fn">ref</span>(<span class="str">'stg_payments'</span>) <span class="op">}}</span>
+<span class="kw">GROUP BY</span> <span class="num">1</span></pre>
+      </div>
+      <h3>Common built-in variables</h3>
+      <ul class="styled-list">
+        <li><strong>{{ this }}</strong> — the current model's own database relation (used mostly in incremental logic).</li>
+        <li><strong>{{ target }}</strong> — info about the active connection: <code>target.name</code>, <code>target.schema</code>.</li>
+        <li><strong>{{ var('name') }}</strong> — reads a variable passed via <code>dbt_project.yml</code> or <code>--vars</code>.</li>
+        <li><strong>{{ env_var('NAME') }}</strong> — reads an OS environment variable, commonly for secrets.</li>
+      </ul>
+    </div>
+
+    <div class="section" id="s2-macros">
+      <div class="section-header"><span class="section-num">03</span><h2>Macros</h2></div>
+      <p>Macros are reusable Jinja functions defined once in <code>macros/</code> and called from any model — the SQL equivalent of a function, keeping logic DRY.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>macros/cents_to_dollars.sql</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="op">{%</span> <span class="fn">macro</span> cents_to_dollars(column_name) <span class="op">%}</span>
+    (<span class="op">{{</span> column_name <span class="op">}}</span> <span class="op">/</span> <span class="num">100</span>)<span class="op">::</span><span class="cls">numeric</span>(<span class="num">16</span>, <span class="num">2</span>)
+<span class="op">{%</span> <span class="fn">endmacro</span> <span class="op">%}</span>
+
+<span class="cmt">-- usage inside a model --</span>
+<span class="kw">SELECT</span> <span class="op">{{</span> cents_to_dollars(<span class="str">'amount_cents'</span>) <span class="op">}}</span> <span class="kw">AS</span> amount_usd
+<span class="kw">FROM</span> <span class="op">{{</span> <span class="fn">ref</span>(<span class="str">'stg_payments'</span>) <span class="op">}}</span></pre>
+      </div>
+      <div class="info-box tip">
+        <span class="icon">💡</span>
+        <div class="info-box-content">The <strong>dbt_utils</strong> package ships dozens of ready-made macros (<code>date_spine</code>, <code>surrogate_key</code>, <code>pivot</code>, <code>star</code>) so you rarely need to write common ones from scratch.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s2-seeds">
+      <div class="section-header"><span class="section-num">04</span><h2>Seeds</h2></div>
+      <p>Seeds are small, static CSV files checked into the repo (lookup tables, country codes, manual mappings) that dbt loads into the warehouse as tables via <code>dbt seed</code>.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>terminal</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="fn">dbt</span> seed                 <span class="cmt"># load all CSVs in seeds/ as tables</span>
+<span class="fn">dbt</span> seed --full-refresh   <span class="cmt"># drop & recreate seed tables</span></pre>
+      </div>
+      <p>Reference a seed exactly like a model — <code>{{ ref('country_codes') }}</code>.</p>
+    </div>
+
+    <div class="section" id="s2-snapshots">
+      <div class="section-header"><span class="section-num">05</span><h2>Snapshots (SCD Type 2)</h2></div>
+      <p>Snapshots capture how a mutable source record changes over time, preserving history even though the source table only holds the current state — a classic <strong style="color:var(--text)">Slowly Changing Dimension Type 2</strong> pattern.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>snapshots/customers_snapshot.sql</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="op">{%</span> <span class="fn">snapshot</span> customers_snapshot <span class="op">%}</span>
+<span class="op">{{</span>
+  <span class="fn">config</span>(
+    target_schema<span class="op">=</span><span class="str">'snapshots'</span>,
+    unique_key<span class="op">=</span><span class="str">'customer_id'</span>,
+    strategy<span class="op">=</span><span class="str">'timestamp'</span>,
+    updated_at<span class="op">=</span><span class="str">'updated_at'</span>
+  )
+<span class="op">}}</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="op">{{</span> <span class="fn">source</span>(<span class="str">'raw'</span>, <span class="str">'customers'</span>) <span class="op">}}</span>
+<span class="op">{%</span> <span class="fn">endsnapshot</span> <span class="op">%}</span></pre>
+      </div>
+      <p>Run with <code>dbt snapshot</code>. dbt adds <code>dbt_valid_from</code> / <code>dbt_valid_to</code> columns so every historical version of a row can be queried.</p>
+    </div>
+
+    <div class="section" id="s2-packages">
+      <div class="section-header"><span class="section-num">06</span><h2>Packages</h2></div>
+      <p>Packages are shareable dbt projects (macros + models) installed like libraries. Declared in <code>packages.yml</code> and pulled with <code>dbt deps</code>.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>packages.yml</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="dec">packages</span>:
+  <span class="op">-</span> <span class="dec">package</span>: <span class="str">dbt-labs/dbt_utils</span>
+    <span class="dec">version</span>: <span class="str">[">=1.0.0", "<2.0.0"]</span>
+  <span class="op">-</span> <span class="dec">package</span>: <span class="str">calogica/dbt_expectations</span>
+    <span class="dec">version</span>: <span class="str">[">=0.10.0", "<0.11.0"]</span></pre>
+      </div>
+      <ul class="styled-list">
+        <li><strong>dbt_utils</strong> — generic tests, date spines, surrogate keys, SQL helpers.</li>
+        <li><strong>dbt_expectations</strong> — Great-Expectations-style tests (distribution, regex, row count).</li>
+        <li><strong>codegen</strong> — auto-generate staging model & source YAML boilerplate.</li>
+      </ul>
+    </div>
+  </div><!-- /page 2 -->
+
+  <!-- ══════════════════ PAGE 3 — TESTING & DOCS ══════════════════ -->
+  <div class="page" id="p3">
+    <div class="hero">
+      <div class="hero-eyebrow">Page 03 / Quality & Governance</div>
+      <h1>Testing <span>& Docs</span></h1>
+      <p class="hero-desc">dbt treats data quality as code: generic and singular tests catch broken assumptions before they reach a dashboard, and auto-generated documentation keeps lineage and column meaning discoverable.</p>
+      <div class="hero-badges">
+        <span class="badge badge-green">Generic Tests</span>
+        <span class="badge badge-blue">Singular Tests</span>
+        <span class="badge badge-yellow">Docs Site</span>
+        <span class="badge badge-purple">Freshness</span>
+      </div>
+    </div>
+
+    <div class="section" id="s3-tests-generic">
+      <div class="section-header"><span class="section-num">01</span><h2>Generic (Schema) Tests</h2></div>
+      <p>Generic tests are parameterized and reusable — applied declaratively in a model's YAML file. Four ship built into dbt Core.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>models/marts/schema.yml</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="dec">version</span>: <span class="num">2</span>
+
+<span class="dec">models</span>:
+  <span class="op">-</span> <span class="dec">name</span>: <span class="str">fct_orders</span>
+    <span class="dec">columns</span>:
+      <span class="op">-</span> <span class="dec">name</span>: <span class="str">order_id</span>
+        <span class="dec">tests</span>:
+          <span class="op">-</span> <span class="str">unique</span>
+          <span class="op">-</span> <span class="str">not_null</span>
+      <span class="op">-</span> <span class="dec">name</span>: <span class="str">customer_id</span>
+        <span class="dec">tests</span>:
+          <span class="op">-</span> <span class="dec">relationships</span>:
+              <span class="dec">to</span>: <span class="fn">ref</span>(<span class="str">'dim_customers'</span>)
+              <span class="dec">field</span>: <span class="str">customer_id</span>
+      <span class="op">-</span> <span class="dec">name</span>: <span class="str">status</span>
+        <span class="dec">tests</span>:
+          <span class="op">-</span> <span class="dec">accepted_values</span>:
+              <span class="dec">values</span>: [<span class="str">'placed'</span>, <span class="str">'shipped'</span>, <span class="str">'returned'</span>]</pre>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Test</th><th>Checks</th></tr>
+          <tr><td>unique</td><td>No duplicate values in the column</td></tr>
+          <tr><td>not_null</td><td>No NULLs in the column</td></tr>
+          <tr><td>accepted_values</td><td>Every value is one of an allowed list</td></tr>
+          <tr><td>relationships</td><td>Referential integrity — every value exists in a related model</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="section" id="s3-tests-custom">
+      <div class="section-header"><span class="section-num">02</span><h2>Singular & Custom Generic Tests</h2></div>
+      <p>A <strong style="color:var(--text)">singular test</strong> is a one-off SQL file in <code>tests/</code> that returns failing rows — if it returns any rows, the test fails.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>tests/assert_positive_order_totals.sql</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="cmt">-- fails if any row is returned</span>
+<span class="kw">SELECT</span> order_id, order_total
+<span class="kw">FROM</span> <span class="op">{{</span> <span class="fn">ref</span>(<span class="str">'fct_orders'</span>) <span class="op">}}</span>
+<span class="kw">WHERE</span> order_total <span class="op">&lt;</span> <span class="num">0</span></pre>
+      </div>
+      <p>A <strong style="color:var(--text)">custom generic test</strong> is a parameterized macro in <code>macros/</code> prefixed <code>test_</code>, reusable across many columns just like the built-ins.</p>
+      <div class="info-box note">
+        <span class="icon">📘</span>
+        <div class="info-box-content">Run all tests with <code>dbt test</code>, or scope to one model with <code>dbt test --select fct_orders</code>. Set <code>severity: warn</code> on a test to log rather than fail the build.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s3-docs">
+      <div class="section-header"><span class="section-num">03</span><h2>Documentation</h2></div>
+      <p>Descriptions live alongside tests in YAML. <code>dbt docs generate</code> builds a static site with the compiled SQL, column descriptions, and full lineage — served locally via <code>dbt docs serve</code>.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>models/marts/schema.yml</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="dec">models</span>:
+  <span class="op">-</span> <span class="dec">name</span>: <span class="str">fct_orders</span>
+    <span class="dec">description</span>: <span class="str">"One row per order, at grain of order_id."</span>
+    <span class="dec">columns</span>:
+      <span class="op">-</span> <span class="dec">name</span>: <span class="str">order_id</span>
+        <span class="dec">description</span>: <span class="str">"Primary key — unique order identifier."</span></pre>
+      </div>
+      <p>Longer, reusable descriptions can live in a <code>.md</code> file using <code>{% docs %}</code> blocks and be referenced with <code>{{ doc('block_name') }}</code>.</p>
+    </div>
+
+    <div class="section" id="s3-lineage">
+      <div class="section-header"><span class="section-num">04</span><h2>The DAG & Lineage Graph</h2></div>
+      <p>Every <code>ref()</code> and <code>source()</code> call becomes an edge in dbt's dependency graph. The docs site renders this visually, and it also drives selective running.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>selective run syntax</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="fn">dbt</span> run --select fct_orders          <span class="cmt"># just this model</span>
+<span class="fn">dbt</span> run --select +fct_orders         <span class="cmt"># this model + everything upstream</span>
+<span class="fn">dbt</span> run --select fct_orders+         <span class="cmt"># this model + everything downstream</span>
+<span class="fn">dbt</span> run --select staging.*           <span class="cmt"># everything in the staging folder</span>
+<span class="fn">dbt</span> run --select tag:nightly         <span class="cmt"># everything tagged 'nightly'</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="s3-sources-freshness">
+      <div class="section-header"><span class="section-num">05</span><h2>Source Freshness</h2></div>
+      <p>dbt can assert that a raw source table has been loaded recently enough, based on a timestamp column — useful for catching a broken upstream EL pipeline early.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>sources.yml — freshness block</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="dec">sources</span>:
+  <span class="op">-</span> <span class="dec">name</span>: <span class="str">raw</span>
+    <span class="dec">tables</span>:
+      <span class="op">-</span> <span class="dec">name</span>: <span class="str">orders</span>
+        <span class="dec">loaded_at_field</span>: <span class="str">_loaded_at</span>
+        <span class="dec">freshness</span>:
+          <span class="dec">warn_after</span>: {<span class="dec">count</span>: <span class="num">12</span>, <span class="dec">period</span>: <span class="str">hour</span>}
+          <span class="dec">error_after</span>: {<span class="dec">count</span>: <span class="num">24</span>, <span class="dec">period</span>: <span class="str">hour</span>}</pre>
+      </div>
+      <p>Checked with <code>dbt source freshness</code>.</p>
+    </div>
+
+    <div class="section" id="s3-exposures">
+      <div class="section-header"><span class="section-num">06</span><h2>Exposures</h2></div>
+      <p>Exposures declare downstream consumers — a dashboard, ML model, or app — so the lineage graph shows the full path from raw source to business usage, and impact analysis catches breaking changes before they hit a report.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>models/exposures.yml</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="dec">exposures</span>:
+  <span class="op">-</span> <span class="dec">name</span>: <span class="str">executive_revenue_dashboard</span>
+    <span class="dec">type</span>: <span class="str">dashboard</span>
+    <span class="dec">depends_on</span>:
+      <span class="op">-</span> <span class="fn">ref</span>(<span class="str">'fct_orders'</span>)
+    <span class="dec">owner</span>:
+      <span class="dec">name</span>: <span class="str">Analytics Team</span></pre>
+      </div>
+      <div class="info-box tip">
+        <span class="icon">💡</span>
+        <div class="info-box-content">dbt Cloud's <strong>Semantic Layer</strong> builds on this same metadata (metrics defined once, consumed consistently across every BI tool).</div>
+      </div>
+    </div>
+  </div><!-- /page 3 -->
+
+  <!-- ══════════════════ PAGE 4 — OPS & CHEATSHEET ══════════════════ -->
+  <div class="page" id="p4">
+    <div class="hero">
+      <div class="hero-eyebrow">Page 04 / Production dbt</div>
+      <h1>Ops <span>& Cheatsheet</span></h1>
+      <p class="hero-desc">Incremental models at scale, hooks, environments/targets, deployment & CI, and a fast command-line reference for everyday dbt work.</p>
+      <div class="hero-badges">
+        <span class="badge badge-green">Incremental</span>
+        <span class="badge badge-blue">CI/CD</span>
+        <span class="badge badge-yellow">profiles.yml</span>
+        <span class="badge badge-purple">CLI Reference</span>
+      </div>
+    </div>
+
+    <div class="section" id="s4-incremental">
+      <div class="section-header"><span class="section-num">01</span><h2>Incremental Models Deep Dive</h2></div>
+      <p>An incremental model only processes new/changed rows after the first full build, using <code>{{ is_incremental() }}</code> to conditionally filter the SELECT.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>models/marts/fct_events.sql</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="op">{{</span>
+  <span class="fn">config</span>(
+    materialized<span class="op">=</span><span class="str">'incremental'</span>,
+    unique_key<span class="op">=</span><span class="str">'event_id'</span>,
+    incremental_strategy<span class="op">=</span><span class="str">'merge'</span>
+  )
+<span class="op">}}</span>
+
+<span class="kw">SELECT</span> *
+<span class="kw">FROM</span> <span class="op">{{</span> <span class="fn">source</span>(<span class="str">'raw'</span>, <span class="str">'events'</span>) <span class="op">}}</span>
+
+<span class="op">{%</span> <span class="kw">if</span> is_incremental() <span class="op">%}</span>
+  <span class="kw">WHERE</span> event_timestamp <span class="op">&gt;</span> (<span class="kw">SELECT MAX</span>(event_timestamp) <span class="kw">FROM</span> <span class="op">{{</span> this <span class="op">}}</span>)
+<span class="op">{%</span> <span class="kw">endif</span> <span class="op">%}</span></pre>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Strategy</th><th>Behavior</th></tr>
+          <tr><td>append</td><td>Simply inserts new rows — no updates, can create duplicates</td></tr>
+          <tr><td>merge</td><td>Upserts on <code>unique_key</code> — most warehouses support this</td></tr>
+          <tr><td>delete+insert</td><td>Deletes matching rows in the target then inserts new — common on Postgres/Redshift</td></tr>
+        </table>
+      </div>
+      <div class="info-box warning">
+        <span class="icon">⚠️</span>
+        <div class="info-box-content">Run <code>dbt run --full-refresh</code> whenever you change the model's column set, logic in a materially breaking way, or need to rebuild history from scratch.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s4-hooks">
+      <div class="section-header"><span class="section-num">02</span><h2>Hooks & Operations</h2></div>
+      <p>Hooks run SQL at specific points in the run cycle — useful for grants, logging, or vacuuming.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>hook types</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="cmt">-- in dbt_project.yml or a model config --</span>
+<span class="dec">pre-hook</span>:  <span class="str">"DELETE FROM {{ this }} WHERE loaded_date = current_date"</span>
+<span class="dec">post-hook</span>: <span class="str">"GRANT SELECT ON {{ this }} TO ROLE reporting"</span>
+<span class="dec">on-run-start</span>: <span class="str">"..."</span>   <span class="cmt"># fires once at the start of dbt run</span>
+<span class="dec">on-run-end</span>:   <span class="str">"..."</span>   <span class="cmt"># fires once at the end of dbt run</span></pre>
+      </div>
+      <p>A one-off DDL/DML statement outside the normal DAG can be run directly with <code>dbt run-operation macro_name</code>.</p>
+    </div>
+
+    <div class="section" id="s4-env">
+      <div class="section-header"><span class="section-num">03</span><h2>Environments, profiles.yml & Targets</h2></div>
+      <p><code>profiles.yml</code> (kept outside the repo, usually <code>~/.dbt/</code>) holds warehouse connection details per <strong style="color:var(--text)">target</strong> — typically dev vs prod.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>~/.dbt/profiles.yml</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="dec">my_project</span>:
+  <span class="dec">target</span>: <span class="str">dev</span>
+  <span class="dec">outputs</span>:
+    <span class="dec">dev</span>:
+      <span class="dec">type</span>: <span class="str">snowflake</span>
+      <span class="dec">account</span>: <span class="str">xy12345</span>
+      <span class="dec">user</span>: <span class="str">{{ env_var('DBT_USER') }}</span>
+      <span class="dec">schema</span>: <span class="str">dbt_dev_jsmith</span>
+    <span class="dec">prod</span>:
+      <span class="dec">type</span>: <span class="str">snowflake</span>
+      <span class="dec">account</span>: <span class="str">xy12345</span>
+      <span class="dec">user</span>: <span class="str">{{ env_var('DBT_USER') }}</span>
+      <span class="dec">schema</span>: <span class="str">analytics</span></pre>
+      </div>
+      <div class="info-box note">
+        <span class="icon">📘</span>
+        <div class="info-box-content">Each developer typically gets their own dev schema so local iteration never collides with teammates or production.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s4-deploy">
+      <div class="section-header"><span class="section-num">04</span><h2>Deployment & CI/CD</h2></div>
+      <ul class="styled-list">
+        <li><strong>Slim CI</strong> — run/test only models changed vs. a base branch using <code>--select state:modified+</code> and a stored <code>manifest.json</code>.</li>
+        <li><strong>Scheduled jobs</strong> — dbt Cloud jobs, Airflow, Dagster, or GitHub Actions trigger <code>dbt build</code> on a cadence.</li>
+        <li><strong>dbt build</strong> — runs models, tests, seeds, and snapshots together in DAG order, stopping downstream models if a test fails.</li>
+        <li><strong>Blue/green or WAP</strong> — write-audit-publish patterns validate a build in a staging schema before swapping it into production.</li>
+      </ul>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>typical CI job</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="fn">dbt</span> deps
+<span class="fn">dbt</span> seed --target ci
+<span class="fn">dbt</span> build --select state:modified+ --target ci</pre>
+      </div>
+    </div>
+
+    <div class="section" id="s4-cli-cheat">
+      <div class="section-header"><span class="section-num">05</span><h2>CLI Command Cheatsheet</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>core commands</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="fn">dbt</span> init &lt;project&gt;         <span class="cmt"># scaffold a new project</span>
+<span class="fn">dbt</span> deps                     <span class="cmt"># install packages from packages.yml</span>
+<span class="fn">dbt</span> debug                    <span class="cmt"># test the warehouse connection</span>
+<span class="fn">dbt</span> compile                  <span class="cmt"># render Jinja to SQL, no execution</span>
+<span class="fn">dbt</span> run                       <span class="cmt"># build all models</span>
+<span class="fn">dbt</span> run --select fct_orders   <span class="cmt"># build one model + selectors</span>
+<span class="fn">dbt</span> test                      <span class="cmt"># run all tests</span>
+<span class="fn">dbt</span> seed                      <span class="cmt"># load seed CSVs</span>
+<span class="fn">dbt</span> snapshot                  <span class="cmt"># run all snapshots</span>
+<span class="fn">dbt</span> build                     <span class="cmt"># run + test + seed + snapshot, in DAG order</span>
+<span class="fn">dbt</span> docs generate              <span class="cmt"># build the docs site</span>
+<span class="fn">dbt</span> docs serve                 <span class="cmt"># serve docs locally</span>
+<span class="fn">dbt</span> source freshness           <span class="cmt"># check source freshness</span>
+<span class="fn">dbt</span> run-operation &lt;macro&gt;      <span class="cmt"># run a macro directly</span>
+<span class="fn">dbt</span> ls --select tag:nightly    <span class="cmt"># list resources matching a selector</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="s4-sql-jinja-cheat">
+      <div class="section-header"><span class="section-num">06</span><h2>Jinja & YAML Quick Reference</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>jinja essentials</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="op">{{</span> <span class="fn">ref</span>(<span class="str">'model_name'</span>) <span class="op">}}</span>            <span class="cmt"># reference another model</span>
+<span class="op">{{</span> <span class="fn">source</span>(<span class="str">'src'</span>, <span class="str">'tbl'</span>) <span class="op">}}</span>       <span class="cmt"># reference a raw source table</span>
+<span class="op">{{</span> <span class="fn">config</span>(materialized<span class="op">=</span><span class="str">'table'</span>) <span class="op">}}</span>  <span class="cmt"># set model config</span>
+<span class="op">{{</span> <span class="fn">var</span>(<span class="str">'my_var'</span>, <span class="str">'default'</span>) <span class="op">}}</span>  <span class="cmt"># read a project variable</span>
+<span class="op">{{</span> this <span class="op">}}</span>                        <span class="cmt"># this model's own relation</span>
+<span class="op">{%</span> <span class="kw">if</span> is_incremental() <span class="op">%}</span> ... <span class="op">{%</span> <span class="kw">endif</span> <span class="op">%}</span>
+<span class="op">{%</span> <span class="kw">for</span> item <span class="kw">in</span> my_list <span class="op">%}</span> ... <span class="op">{%</span> <span class="kw">endfor</span> <span class="op">%}</span></pre>
+      </div>
+      <div class="divider"></div>
+      <div class="info-box note">
+        <span class="icon">📘</span>
+        <div class="info-box-content">Bookmark this page — use the sidebar search on each tab to jump straight to a section, and the <strong>COPY</strong> button on any code block to grab the snippet.</div>
+      </div>
+    </div>
+  </div><!-- /page 4 -->
+
+  </main>
+</div><!-- /layout -->
+
+<button id="back-top" onclick="scrollToTop()">↑ TOP</button>
+
+<!-- ── TOC DATA ── -->
+<script>
+const tocData = {
+  p1: {
+    title: "🧱 Core Concepts",
+    sections: [
+      { label: "Core Concepts", links: [
+        { href: "s1-intro", icon: "📖", text: "What Is dbt?" },
+        { href: "s1-workflow", icon: "🔀", text: "Where dbt Fits: ELT vs ETL" },
+        { href: "s1-project", icon: "🗂️", text: "Project Structure" },
+        { href: "s1-models", icon: "🧩", text: "Models & Materializations" },
+        { href: "s1-config", icon: "⚙️", text: "dbt_project.yml & Config" },
+        { href: "s1-cli", icon: "☁️", text: "dbt Core vs dbt Cloud" },
+      ]}
+    ]
+  },
+  p2: {
+    title: "🔗 Modeling & Jinja",
+    sections: [
+      { label: "Modeling & Jinja", links: [
+        { href: "s2-ref-source", icon: "🔗", text: "ref() & source()" },
+        { href: "s2-jinja", icon: "🔤", text: "Jinja Basics" },
+        { href: "s2-macros", icon: "🧰", text: "Macros" },
+        { href: "s2-seeds", icon: "🌱", text: "Seeds" },
+        { href: "s2-snapshots", icon: "📸", text: "Snapshots (SCD Type 2)" },
+        { href: "s2-packages", icon: "📦", text: "Packages" },
+      ]}
+    ]
+  },
+  p3: {
+    title: "✅ Testing & Docs",
+    sections: [
+      { label: "Testing & Docs", links: [
+        { href: "s3-tests-generic", icon: "✅", text: "Generic (Schema) Tests" },
+        { href: "s3-tests-custom", icon: "🧪", text: "Singular & Custom Tests" },
+        { href: "s3-docs", icon: "📚", text: "Documentation" },
+        { href: "s3-lineage", icon: "🕸️", text: "The DAG & Lineage Graph" },
+        { href: "s3-sources-freshness", icon: "⏱️", text: "Source Freshness" },
+        { href: "s3-exposures", icon: "📊", text: "Exposures" },
+      ]}
+    ]
+  },
+  p4: {
+    title: "⚙️ Ops & Cheatsheet",
+    sections: [
+      { label: "Reference", links: [
+        { href: "s4-incremental", icon: "🔁", text: "Incremental Models Deep Dive" },
+        { href: "s4-hooks", icon: "🪝", text: "Hooks & Operations" },
+        { href: "s4-env", icon: "🌐", text: "Environments & profiles.yml" },
+        { href: "s4-deploy", icon: "🚀", text: "Deployment & CI/CD" },
+        { href: "s4-cli-cheat", icon: "⌨️", text: "CLI Command Cheatsheet" },
+        { href: "s4-sql-jinja-cheat", icon: "🧾", text: "Jinja & YAML Quick Reference" },
+      ]}
+    ]
+  }
+};
+
+let currentPage = 'p1';
+
+function buildTOC(pageId) {
+  const data = tocData[pageId];
+  const container = document.getElementById('toc-content');
+  document.getElementById('sidebar-title').textContent = data.title;
+  let html = '';
+  data.sections.forEach(sec => {
+    html += `<div class="toc-section">`;
+    if (sec.label) html += `<div class="toc-section-label">${sec.label}</div>`;
+    sec.links.forEach(l => {
+      html += `<a class="toc-link" onclick="scrollToSection('${l.href}')">
+        <span class="toc-icon">${l.icon}</span>${l.text}
+      </a>`;
+    });
+    html += `</div>`;
+  });
+  container.innerHTML = html;
+}
+
+function switchPage(pageId, tab) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+  tab.classList.add('active');
+  currentPage = pageId;
+  document.getElementById('main').scrollTop = 0;
+  buildTOC(pageId);
+  document.getElementById('toc-search').value = '';
+  closeSidebar();
+}
+
+function scrollToSection(id) {
+  const el = document.getElementById(id);
+  if (el) {
+    document.getElementById('main').scrollTo({ top: el.offsetTop - 20, behavior: 'smooth' });
+    document.querySelectorAll('.toc-link').forEach(l => l.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+  }
+  closeSidebar();
+}
+
+function scrollToTop() {
+  document.getElementById('main').scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.getElementById('main').addEventListener('scroll', function() {
+  const btn = document.getElementById('back-top');
+  btn.classList.toggle('visible', this.scrollTop > 400);
+});
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+function filterTOC(q) {
+  q = q.toLowerCase();
+  document.querySelectorAll('.toc-link').forEach(link => {
+    link.style.display = link.textContent.toLowerCase().includes(q) ? 'flex' : 'none';
+  });
+  document.querySelectorAll('.toc-section-label').forEach(label => {
+    const visible = [...label.parentElement.querySelectorAll('.toc-link')].some(l => l.style.display !== 'none');
+    label.style.display = visible ? '' : 'none';
+  });
+}
+
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  navigator.clipboard.writeText(pre.innerText).then(() => {
+    btn.textContent = 'COPIED!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+buildTOC('p1');
+</script>
+
+<!-- ══════════ Learning Hub integration (injected) ══════════ -->
+<style>
+  #hub-back-btn {
+    position: fixed; top: 10px; right: 16px; z-index: 999;
+    display: flex; align-items: center; gap: 6px;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 12px; font-weight: 600; letter-spacing: .03em;
+    color: #0a0a0a; background: #00ff88;
+    padding: 7px 13px; border-radius: 20px; text-decoration: none;
+    box-shadow: 0 2px 14px rgba(0,255,136,.35);
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  #hub-back-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 18px rgba(0,255,136,.5); }
+  .search-highlight-pulse {
+    animation: hubPulse 1.4s ease-out 2;
+    border-radius: 10px;
+  }
+  @keyframes hubPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(0,255,136,.55); }
+    70%  { box-shadow: 0 0 0 14px rgba(0,255,136,0); }
+    100% { box-shadow: 0 0 0 0 rgba(0,255,136,0); }
+  }
+  @media (max-width: 640px) { #hub-back-btn span.lbl { display: none; } }
+</style>
+<a id="hub-back-btn" href="../index.html" title="Back to Learning Hub">&#8592; <span class="lbl">Hub</span></a>
+<script>
+(function () {
+  function getParam(name) {
+    return new URLSearchParams(window.location.search).get(name);
+  }
+  function go() {
+    var page = getParam('page');
+    var nb = getParam('nb');
+    var sec = getParam('sec');
+    try {
+      if (page && typeof switchPage === 'function') {
+        var tab = document.querySelector('.page-tab[onclick*="\'' + page + '\'"]');
+        if (tab) switchPage(page, tab);
+      }
+    } catch (e) { /* noop */ }
+    try {
+      if (nb && typeof openNotebook === 'function') {
+        var item = document.querySelector('.toc-item[onclick*="\'' + nb + '\'"]');
+        document.querySelectorAll('.notebook-page').forEach(function(p){ p.classList.remove('active'); });
+        var target = document.getElementById(nb);
+        if (target) target.classList.add('active');
+        document.querySelectorAll('.toc-item').forEach(function(el){ el.classList.remove('active'); });
+        if (item) item.classList.add('active');
+      }
+    } catch (e) { /* noop */ }
+    if (sec) {
+      setTimeout(function () {
+        var el = document.getElementById(sec);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          el.classList.add('search-highlight-pulse');
+          setTimeout(function () { el.classList.remove('search-highlight-pulse'); }, 3000);
+        }
+      }, 200);
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', go);
+  } else {
+    go();
+  }
+})();
+</script>
+
+</body>
+</html>

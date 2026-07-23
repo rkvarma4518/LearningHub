@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Azure SQL & SQL Server — Complete Notes</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg: #0a0a0a;
+    --bg2: #111111;
+    --bg3: #161616;
+    --border: #222222;
+    --green: #00ff88;
+    --green-dim: #00cc6a;
+    --green-glow: rgba(0,255,136,0.15);
+    --green-subtle: rgba(0,255,136,0.07);
+    --yellow: #ffd60a;
+    --blue: #58a6ff;
+    --red: #ff6b6b;
+    --purple: #c792ea;
+    --orange: #ffab40;
+    --text: #e0e0e0;
+    --text-dim: #888;
+    --text-faint: #444;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Inter', sans-serif;
+    --sidebar-w: 280px;
+    --topnav-h: 52px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; line-height: 1.7; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+  /* ── TOP NAV (PAGES) ── */
+  #topnav {
+    position: fixed; top: 0; left: 0; right: 0; height: var(--topnav-h);
+    background: var(--bg2); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; z-index: 200; overflow-x: auto;
+    scrollbar-width: none;
+  }
+  #topnav::-webkit-scrollbar { display: none; }
+
+  .nav-logo {
+    font-family: var(--mono); font-size: 13px; font-weight: 700;
+    color: var(--green); letter-spacing: .08em; text-transform: uppercase;
+    padding: 0 20px; white-space: nowrap; display: flex; align-items: center; gap: 8px;
+    border-right: 1px solid var(--border); flex-shrink: 0;
+  }
+  .nav-logo::before { content: '>'; animation: blink 1.1s step-end infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  .page-tabs { display: flex; align-items: stretch; height: var(--topnav-h); }
+
+  .page-tab {
+    display: flex; align-items: center; gap: 7px;
+    padding: 0 18px; font-family: var(--sans); font-size: 13px;
+    color: var(--text-dim); cursor: pointer; white-space: nowrap;
+    border-bottom: 2px solid transparent; border-right: 1px solid var(--border);
+    transition: all .18s; user-select: none; flex-shrink: 0;
+  }
+  .page-tab:hover { color: var(--text); background: var(--green-subtle); }
+  .page-tab.active { color: var(--green); border-bottom-color: var(--green); background: var(--green-subtle); }
+  .page-tab .tab-icon { font-size: 14px; }
+  .page-tab .tab-num {
+    font-family: var(--mono); font-size: 10px; color: var(--text-faint);
+    background: var(--bg3); border: 1px solid var(--border);
+    padding: 1px 5px; border-radius: 3px;
+  }
+  .page-tab.active .tab-num { color: var(--green); border-color: rgba(0,255,136,.3); }
+
+  /* ── LAYOUT ── */
+  #layout {
+    display: flex; margin-top: var(--topnav-h); height: calc(100vh - var(--topnav-h)); overflow: hidden;
+  }
+
+  /* ── SIDEBAR ── */
+  #sidebar {
+    width: var(--sidebar-w); background: var(--bg2);
+    border-right: 1px solid var(--border); overflow-y: auto;
+    flex-shrink: 0; transition: transform .3s;
+  }
+  #sidebar::-webkit-scrollbar { width: 4px; }
+  #sidebar::-webkit-scrollbar-track { background: var(--bg2); }
+  #sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .sidebar-header {
+    padding: 20px 20px 16px; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--bg2); z-index: 1;
+  }
+  .sidebar-page-title {
+    font-family: var(--mono); font-size: 11px; font-weight: 700;
+    color: var(--green); letter-spacing: .1em; text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .sidebar-search { position: relative; }
+  .sidebar-search input {
+    width: 100%; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text); font-family: var(--mono);
+    font-size: 12px; padding: 7px 10px 7px 30px; outline: none; transition: border-color .2s;
+  }
+  .sidebar-search input:focus { border-color: var(--green); }
+  .sidebar-search input::placeholder { color: var(--text-faint); }
+  .sidebar-search::before {
+    content: '⌕'; position: absolute; left: 9px; top: 50%;
+    transform: translateY(-50%); color: var(--text-dim); font-size: 14px; pointer-events: none;
+  }
+
+  .toc-section { padding: 8px 0; }
+  .toc-section-label {
+    font-family: var(--mono); font-size: 10px; font-weight: 600;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--text-faint);
+    padding: 8px 20px 4px;
+  }
+  .toc-link {
+    display: flex; align-items: center; gap: 8px; padding: 6px 20px;
+    color: var(--text-dim); text-decoration: none; font-size: 13px;
+    font-family: var(--sans); border-left: 2px solid transparent;
+    transition: all .15s; cursor: pointer;
+  }
+  .toc-link:hover, .toc-link.active {
+    color: var(--green); border-left-color: var(--green); background: var(--green-subtle);
+  }
+  .toc-link .toc-icon { font-size: 11px; width: 16px; text-align: center; flex-shrink: 0; }
+
+  /* ── MAIN CONTENT ── */
+  #main {
+    flex: 1; overflow-y: auto; padding: 0 48px 80px; min-width: 0;
+  }
+  #main::-webkit-scrollbar { width: 6px; }
+  #main::-webkit-scrollbar-track { background: var(--bg); }
+  #main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ── PAGES ── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── HERO ── */
+  .hero { padding: 64px 0 48px; border-bottom: 1px solid var(--border); margin-bottom: 56px; }
+  .hero-eyebrow {
+    font-family: var(--mono); font-size: 12px; color: var(--green);
+    letter-spacing: .15em; text-transform: uppercase; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .hero-eyebrow::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(to right, var(--green-dim), transparent); max-width: 200px;
+  }
+  .hero h1 {
+    font-family: var(--mono); font-size: clamp(32px, 4vw, 58px);
+    font-weight: 700; line-height: 1.1; letter-spacing: -.02em; color: #fff; margin-bottom: 18px;
+  }
+  .hero h1 span { color: var(--green); text-shadow: 0 0 40px var(--green-glow); }
+  .hero-desc { font-size: 15px; color: var(--text-dim); max-width: 640px; line-height: 1.8; margin-bottom: 28px; }
+  .hero-badges { display: flex; gap: 10px; flex-wrap: wrap; }
+  .badge { font-family: var(--mono); font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 4px; letter-spacing: .06em; }
+  .badge-green { background: var(--green-subtle); color: var(--green); border: 1px solid rgba(0,255,136,.25); }
+  .badge-blue { background: rgba(88,166,255,.08); color: var(--blue); border: 1px solid rgba(88,166,255,.2); }
+  .badge-yellow { background: rgba(255,214,10,.07); color: var(--yellow); border: 1px solid rgba(255,214,10,.2); }
+  .badge-purple { background: rgba(199,146,234,.08); color: var(--purple); border: 1px solid rgba(199,146,234,.2); }
+
+  /* ── SECTIONS ── */
+  .section { margin-bottom: 64px; scroll-margin-top: 20px; }
+  .section-header {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 28px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+  }
+  .section-num {
+    font-family: var(--mono); font-size: 11px; color: var(--green);
+    background: var(--green-subtle); border: 1px solid rgba(0,255,136,.2);
+    padding: 3px 8px; border-radius: 4px; font-weight: 700; letter-spacing: .08em; flex-shrink: 0;
+  }
+  .section h2 { font-family: var(--mono); font-size: 22px; font-weight: 700; color: #fff; letter-spacing: -.01em; }
+  .section h3 {
+    font-family: var(--sans); font-size: 16px; font-weight: 600; color: var(--text);
+    margin: 28px 0 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .section h3::before { content: '//'; font-family: var(--mono); color: var(--green-dim); font-size: 13px; font-weight: 400; }
+  .section p { color: var(--text-dim); margin-bottom: 14px; max-width: 760px; }
+
+  /* ── CODE BLOCK ── */
+  .code-block { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin: 16px 0; }
+  .code-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; background: var(--bg2); border-bottom: 1px solid var(--border);
+    font-family: var(--mono); font-size: 11px; color: var(--text-faint);
+  }
+  .code-header .dots { display: flex; gap: 6px; }
+  .code-header .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-r { background: #ff5f57; } .dot-y { background: #febc2e; } .dot-g { background: #28c840; }
+  .copy-btn {
+    background: none; border: 1px solid var(--border); color: var(--text-faint);
+    font-family: var(--mono); font-size: 10px; padding: 3px 8px;
+    border-radius: 4px; cursor: pointer; transition: all .15s; letter-spacing: .06em;
+  }
+  .copy-btn:hover { border-color: var(--green); color: var(--green); }
+  .copy-btn.copied { border-color: var(--green); color: var(--green); }
+  .code-block pre {
+    padding: 20px; overflow-x: auto; font-family: var(--mono);
+    font-size: 13.5px; line-height: 1.8; color: var(--text);
+  }
+  .code-block pre::-webkit-scrollbar { height: 4px; }
+  .code-block pre::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .kw { color: var(--purple); }
+  .fn { color: var(--blue); }
+  .str { color: var(--yellow); }
+  .cmt { color: var(--text-faint); font-style: italic; }
+  .num { color: var(--orange); }
+  .cls { color: var(--green); }
+  .op  { color: var(--red); }
+  .out { color: var(--purple); }
+  .dec { color: var(--orange); }
+
+  /* ── INFO BOXES ── */
+  .info-box {
+    border-radius: 8px; padding: 16px 18px; margin: 16px 0;
+    display: flex; gap: 12px; align-items: flex-start; font-size: 14px; max-width: 760px;
+  }
+  .info-box .icon { font-size: 16px; flex-shrink: 0; margin-top: 2px; }
+  .info-box-content { color: var(--text-dim); line-height: 1.7; }
+  .info-box-content strong { color: var(--text); font-weight: 600; }
+  .tip { background: rgba(0,255,136,.06); border: 1px solid rgba(0,255,136,.2); }
+  .warning { background: rgba(255,214,10,.06); border: 1px solid rgba(255,214,10,.2); }
+  .note { background: rgba(88,166,255,.06); border: 1px solid rgba(88,166,255,.2); }
+  .danger { background: rgba(255,107,107,.06); border: 1px solid rgba(255,107,107,.2); }
+
+  /* ── TABLE ── */
+  .table-wrap { overflow-x: auto; margin: 16px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-family: var(--mono); }
+  th { background: var(--bg3); color: var(--green); font-weight: 600; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+  td { padding: 9px 14px; border-bottom: 1px solid var(--border); color: var(--text-dim); vertical-align: top; }
+  td:first-child { color: var(--green-dim); font-weight: 500; }
+  tr:hover td { background: var(--green-subtle); }
+
+  /* ── CARDS ── */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin: 16px 0; }
+  .card { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 16px; transition: border-color .2s; }
+  .card:hover { border-color: var(--green); }
+  .card .card-icon { font-size: 20px; margin-bottom: 8px; }
+  .card .card-title { font-weight: 600; font-size: 14px; color: var(--text); margin-bottom: 4px; }
+  .card .card-desc { font-size: 12.5px; color: var(--text-dim); line-height: 1.6; }
+
+  /* ── STYLED LIST ── */
+  .styled-list { list-style: none; padding: 0; margin: 12px 0; max-width: 760px; }
+  .styled-list li { padding: 7px 0 7px 22px; color: var(--text-dim); font-size: 14px; border-bottom: 1px solid var(--border); position: relative; }
+  .styled-list li:last-child { border-bottom: none; }
+  .styled-list li::before { content: '▸'; position: absolute; left: 0; color: var(--green); font-size: 11px; top: 9px; }
+  .styled-list li strong { color: var(--text); }
+
+  /* ── FLOW ── */
+  .flow { display: flex; align-items: center; gap: 0; margin: 20px 0; flex-wrap: wrap; max-width: 760px; }
+  .flow-step { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; text-align: center; min-width: 110px; }
+  .flow-step .step-label { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 4px; color: var(--text-faint); }
+  .flow-step .step-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .flow-step.active { border-color: var(--green); background: var(--green-subtle); }
+  .flow-step.active .step-label { color: var(--green); }
+  .flow-step.active .step-name { color: var(--green); }
+  .flow-arrow { font-family: var(--mono); color: var(--text-faint); font-size: 18px; padding: 0 8px; flex-shrink: 0; }
+
+  code { font-family: var(--mono); font-size: 12.5px; background: var(--bg3); border: 1px solid var(--border); color: var(--green-dim); padding: 1px 6px; border-radius: 4px; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+  /* ── INTERVIEW Q&A ── */
+  .qa-group-label {
+    font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--green);
+    letter-spacing: .1em; text-transform: uppercase; margin: 32px 0 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .qa-group-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  details.qa {
+    background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+    margin: 10px 0; overflow: hidden; max-width: 760px;
+  }
+  details.qa[open] { border-color: rgba(0,255,136,.3); }
+  details.qa summary {
+    list-style: none; cursor: pointer; padding: 14px 18px;
+    font-family: var(--sans); font-size: 14px; font-weight: 600; color: var(--text);
+    display: flex; align-items: center; gap: 10px; user-select: none;
+  }
+  details.qa summary::-webkit-details-marker { display: none; }
+  details.qa summary::before {
+    content: 'Q'; font-family: var(--mono); font-size: 10px; font-weight: 700;
+    color: var(--green); background: var(--green-subtle); border: 1px solid rgba(0,255,136,.25);
+    border-radius: 4px; padding: 2px 6px; flex-shrink: 0;
+  }
+  details.qa summary .chev { margin-left: auto; color: var(--text-faint); font-family: var(--mono); font-size: 12px; transition: transform .2s; }
+  details.qa[open] summary .chev { transform: rotate(90deg); color: var(--green); }
+  .qa-answer { padding: 0 18px 16px 46px; color: var(--text-dim); font-size: 13.5px; line-height: 1.75; }
+  .qa-answer strong { color: var(--text); }
+  .qa-answer code { font-size: 12px; }
+
+  /* ── BACK TOP ── */
+  #back-top { position: fixed; bottom: 28px; right: 28px; background: var(--bg2); border: 1px solid var(--border); color: var(--green); font-family: var(--mono); font-size: 12px; padding: 8px 14px; border-radius: 6px; cursor: pointer; opacity: 0; transition: opacity .3s, border-color .2s; z-index: 50; }
+  #back-top.visible { opacity: 1; }
+  #back-top:hover { border-color: var(--green); background: var(--green-subtle); }
+
+  /* ── HAMBURGER ── */
+  #menu-toggle { display: none; position: fixed; top: 10px; right: 12px; z-index: 300; background: var(--bg2); border: 1px solid var(--border); color: var(--green); font-size: 18px; width: 34px; height: 34px; border-radius: 6px; cursor: pointer; align-items: center; justify-content: center; }
+  #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 90; margin-top: var(--topnav-h); }
+
+  @media (max-width: 900px) {
+    #sidebar { position: fixed; top: var(--topnav-h); bottom: 0; left: 0; z-index: 100; transform: translateX(-100%); }
+    #sidebar.open { transform: translateX(0); }
+    #menu-toggle { display: flex; }
+    #overlay.show { display: block; }
+    #main { padding: 24px 20px 60px; }
+    .page-tab span.tab-label { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP PAGE NAV -->
+<nav id="topnav">
+  <div class="nav-logo">Azure SQL Notes</div>
+  <div class="page-tabs">
+    <div class="page-tab active" onclick="switchPage('p1',this)">
+      <span class="tab-icon">🧾</span><span class="tab-label">SQL Fundamentals</span><span class="tab-num">01</span>
+    </div>
+    <div class="page-tab" onclick="switchPage('p2',this)">
+      <span class="tab-icon">☁️</span><span class="tab-label">Azure SQL Options</span><span class="tab-num">02</span>
+    </div>
+    <div class="page-tab" onclick="switchPage('p3',this)">
+      <span class="tab-icon">⚙️</span><span class="tab-label">Advanced T-SQL</span><span class="tab-num">03</span>
+    </div>
+    <div class="page-tab" onclick="switchPage('p4',this)">
+      <span class="tab-icon">🚀</span><span class="tab-label">Performance & Tuning</span><span class="tab-num">04</span>
+    </div>
+    <div class="page-tab" onclick="switchPage('p5',this)">
+      <span class="tab-icon">🎯</span><span class="tab-label">Interview Prep</span><span class="tab-num">05</span>
+    </div>
+    <div class="page-tab" onclick="switchPage('p6',this)">
+      <span class="tab-icon">📋</span><span class="tab-label">Cheatsheet</span><span class="tab-num">06</span>
+    </div>
+  </div>
+</nav>
+
+<button id="menu-toggle" onclick="toggleSidebar()">☰</button>
+<div id="overlay" onclick="closeSidebar()"></div>
+
+<div id="layout">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-page-title" id="sidebar-title">🧾 SQL Fundamentals</div>
+      <div class="sidebar-search">
+        <input id="toc-search" type="text" placeholder="Filter sections..." oninput="filterTOC(this.value)">
+      </div>
+    </div>
+    <div id="toc-content"></div>
+  </aside>
+
+  <!-- MAIN -->
+  <main id="main">
+
+  <!-- ══════════════════ PAGE 1 — SQL FUNDAMENTALS ══════════════════ -->
+  <div class="page active" id="p1">
+    <div class="hero">
+      <div class="hero-eyebrow">Page 01 / SQL & T-SQL</div>
+      <h1>SQL <span>Fundamentals</span></h1>
+      <p class="hero-desc">The core relational SQL you need before touching SQL Server or Azure SQL specifics — data types, DDL/DML/DQL, joins, aggregation, subqueries and window functions.</p>
+      <div class="hero-badges">
+        <span class="badge badge-green">DDL / DML / DQL</span>
+        <span class="badge badge-blue">Joins</span>
+        <span class="badge badge-yellow">Window Functions</span>
+      </div>
+    </div>
+
+    <div class="section" id="s1-categories">
+      <div class="section-header"><span class="section-num">01</span><h2>SQL Command Categories</h2></div>
+      <table>
+        <tr><th>Category</th><th>Commands</th><th>Purpose</th></tr>
+        <tr><td>DDL</td><td>CREATE, ALTER, DROP, TRUNCATE</td><td>Define/modify schema objects</td></tr>
+        <tr><td>DML</td><td>INSERT, UPDATE, DELETE, MERGE</td><td>Modify data</td></tr>
+        <tr><td>DQL</td><td>SELECT</td><td>Query/read data</td></tr>
+        <tr><td>DCL</td><td>GRANT, REVOKE, DENY</td><td>Manage permissions</td></tr>
+        <tr><td>TCL</td><td>BEGIN TRAN, COMMIT, ROLLBACK</td><td>Control transactions</td></tr>
+      </table>
+    </div>
+
+    <div class="section" id="s1-ddl-dml">
+      <div class="section-header"><span class="section-num">02</span><h2>DDL & DML Basics</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>t-sql — schema & data</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="kw">CREATE TABLE</span> Employees (
+  EmpId    <span class="cls">INT</span> <span class="kw">IDENTITY</span>(<span class="num">1</span>,<span class="num">1</span>) <span class="kw">PRIMARY KEY</span>,
+  Name     <span class="cls">NVARCHAR</span>(<span class="num">100</span>) <span class="kw">NOT NULL</span>,
+  DeptId   <span class="cls">INT</span> <span class="kw">FOREIGN KEY REFERENCES</span> Departments(DeptId),
+  Salary   <span class="cls">DECIMAL</span>(<span class="num">10</span>,<span class="num">2</span>),
+  HireDate <span class="cls">DATE DEFAULT</span> <span class="fn">GETDATE</span>()
+);
+
+<span class="kw">ALTER TABLE</span> Employees <span class="kw">ADD</span> Email <span class="cls">NVARCHAR</span>(<span class="num">150</span>);
+<span class="kw">DROP TABLE</span> <span class="kw">IF EXISTS</span> TempTable;
+
+<span class="kw">INSERT INTO</span> Employees (Name, DeptId, Salary) <span class="kw">VALUES</span> (<span class="str">'Asha'</span>, <span class="num">2</span>, <span class="num">75000</span>);
+<span class="kw">UPDATE</span> Employees <span class="kw">SET</span> Salary = Salary * <span class="num">1.1</span> <span class="kw">WHERE</span> DeptId = <span class="num">2</span>;
+<span class="kw">DELETE FROM</span> Employees <span class="kw">WHERE</span> HireDate <span class="op">&lt;</span> <span class="str">'2015-01-01'</span>;</pre>
+      </div>
+    </div>
+
+    <div class="section" id="s1-joins">
+      <div class="section-header"><span class="section-num">03</span><h2>Joins</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>t-sql — join types</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="kw">SELECT</span> e.Name, d.DeptName
+<span class="kw">FROM</span> Employees e
+<span class="kw">INNER JOIN</span> Departments d <span class="kw">ON</span> e.DeptId = d.DeptId;    <span class="cmt">-- only matching rows</span>
+
+<span class="kw">SELECT</span> e.Name, d.DeptName
+<span class="kw">FROM</span> Employees e
+<span class="kw">LEFT JOIN</span> Departments d <span class="kw">ON</span> e.DeptId = d.DeptId;     <span class="cmt">-- all employees, matched dept or NULL</span>
+
+<span class="kw">SELECT</span> e.Name, d.DeptName
+<span class="kw">FROM</span> Employees e
+<span class="kw">FULL OUTER JOIN</span> Departments d <span class="kw">ON</span> e.DeptId = d.DeptId; <span class="cmt">-- everything, matched or not</span>
+
+<span class="kw">SELECT</span> e1.Name <span class="kw">AS</span> Emp, e2.Name <span class="kw">AS</span> Manager
+<span class="kw">FROM</span> Employees e1
+<span class="kw">JOIN</span> Employees e2 <span class="kw">ON</span> e1.ManagerId = e2.EmpId;         <span class="cmt">-- self join</span></pre>
+      </div>
+      <table>
+        <tr><th>Join</th><th>Returns</th></tr>
+        <tr><td>INNER JOIN</td><td>Only rows with matches on both sides</td></tr>
+        <tr><td>LEFT JOIN</td><td>All left rows + matched right rows (NULL if none)</td></tr>
+        <tr><td>RIGHT JOIN</td><td>All right rows + matched left rows (NULL if none)</td></tr>
+        <tr><td>FULL OUTER JOIN</td><td>All rows from both sides, matched where possible</td></tr>
+        <tr><td>CROSS JOIN</td><td>Cartesian product — every row × every row</td></tr>
+        <tr><td>SELF JOIN</td><td>A table joined to itself (e.g. employee ↔ manager)</td></tr>
+      </table>
+    </div>
+
+    <div class="section" id="s1-aggregation">
+      <div class="section-header"><span class="section-num">04</span><h2>Aggregation & Grouping</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>t-sql — group by & having</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="kw">SELECT</span> DeptId, <span class="fn">COUNT</span>(*) <span class="kw">AS</span> Headcount, <span class="fn">AVG</span>(Salary) <span class="kw">AS</span> AvgSalary
+<span class="kw">FROM</span> Employees
+<span class="kw">GROUP BY</span> DeptId
+<span class="kw">HAVING</span> <span class="fn">COUNT</span>(*) <span class="op">&gt;</span> <span class="num">5</span>          <span class="cmt">-- filters groups, WHERE filters rows</span>
+<span class="kw">ORDER BY</span> AvgSalary <span class="kw">DESC</span>;</pre>
+      </div>
+      <div class="info-box note">
+        <span class="icon">📘</span>
+        <div class="info-box-content">Logical query processing order: <code>FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY</code>. <code>WHERE</code> can't reference column aliases defined in <code>SELECT</code> because it runs first.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s1-subqueries">
+      <div class="section-header"><span class="section-num">05</span><h2>Subqueries & CTEs</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>t-sql — subqueries & CTE</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="cmt">-- Correlated subquery</span>
+<span class="kw">SELECT</span> Name, Salary
+<span class="kw">FROM</span> Employees e
+<span class="kw">WHERE</span> Salary <span class="op">&gt;</span> (<span class="kw">SELECT</span> <span class="fn">AVG</span>(Salary) <span class="kw">FROM</span> Employees <span class="kw">WHERE</span> DeptId = e.DeptId);
+
+<span class="cmt">-- Common Table Expression (CTE)</span>
+<span class="kw">WITH</span> DeptAvg <span class="kw">AS</span> (
+  <span class="kw">SELECT</span> DeptId, <span class="fn">AVG</span>(Salary) <span class="kw">AS</span> AvgSal <span class="kw">FROM</span> Employees <span class="kw">GROUP BY</span> DeptId
+)
+<span class="kw">SELECT</span> e.Name, e.Salary, d.AvgSal
+<span class="kw">FROM</span> Employees e
+<span class="kw">JOIN</span> DeptAvg d <span class="kw">ON</span> e.DeptId = d.DeptId;
+
+<span class="cmt">-- Recursive CTE — org chart traversal</span>
+<span class="kw">WITH</span> OrgChart <span class="kw">AS</span> (
+  <span class="kw">SELECT</span> EmpId, Name, ManagerId, <span class="num">0</span> <span class="kw">AS</span> Lvl <span class="kw">FROM</span> Employees <span class="kw">WHERE</span> ManagerId <span class="kw">IS NULL</span>
+  <span class="kw">UNION ALL</span>
+  <span class="kw">SELECT</span> e.EmpId, e.Name, e.ManagerId, o.Lvl <span class="op">+</span> <span class="num">1</span>
+  <span class="kw">FROM</span> Employees e <span class="kw">JOIN</span> OrgChart o <span class="kw">ON</span> e.ManagerId = o.EmpId
+)
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> OrgChart;</pre>
+      </div>
+    </div>
+
+    <div class="section" id="s1-window">
+      <div class="section-header"><span class="section-num">06</span><h2>Window Functions</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>t-sql — window functions</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="kw">SELECT</span> Name, DeptId, Salary,
+  <span class="fn">ROW_NUMBER</span>() <span class="kw">OVER</span> (<span class="kw">PARTITION BY</span> DeptId <span class="kw">ORDER BY</span> Salary <span class="kw">DESC</span>) <span class="kw">AS</span> rn,
+  <span class="fn">RANK</span>()       <span class="kw">OVER</span> (<span class="kw">PARTITION BY</span> DeptId <span class="kw">ORDER BY</span> Salary <span class="kw">DESC</span>) <span class="kw">AS</span> rnk,
+  <span class="fn">DENSE_RANK</span>() <span class="kw">OVER</span> (<span class="kw">PARTITION BY</span> DeptId <span class="kw">ORDER BY</span> Salary <span class="kw">DESC</span>) <span class="kw">AS</span> drnk,
+  <span class="fn">LAG</span>(Salary,<span class="num">1</span>)  <span class="kw">OVER</span> (<span class="kw">PARTITION BY</span> DeptId <span class="kw">ORDER BY</span> Salary) <span class="kw">AS</span> PrevSalary,
+  <span class="fn">SUM</span>(Salary)   <span class="kw">OVER</span> (<span class="kw">PARTITION BY</span> DeptId) <span class="kw">AS</span> DeptTotal
+<span class="kw">FROM</span> Employees;</pre>
+      </div>
+      <table>
+        <tr><th>Function</th><th>Behavior</th></tr>
+        <tr><td>ROW_NUMBER()</td><td>Unique sequential number, no ties</td></tr>
+        <tr><td>RANK()</td><td>Same rank for ties, gaps after ties (1,2,2,4)</td></tr>
+        <tr><td>DENSE_RANK()</td><td>Same rank for ties, no gaps (1,2,2,3)</td></tr>
+        <tr><td>LAG / LEAD</td><td>Value from a previous / next row in the window</td></tr>
+        <tr><td>SUM/AVG OVER()</td><td>Running or partitioned aggregate without collapsing rows</td></tr>
+      </table>
+    </div>
+  </div><!-- /page 1 -->
+
+  <!-- ══════════════════ PAGE 2 — AZURE SQL OPTIONS ══════════════════ -->
+  <div class="page" id="p2">
+    <div class="hero">
+      <div class="hero-eyebrow">Page 02 / Azure SQL Family</div>
+      <h1>Azure SQL <span>Deployment Options</span></h1>
+      <p class="hero-desc">Microsoft's SQL Server engine is offered in three deployment models on Azure, each trading off management effort against control — plus the billing models and HA features that go with them.</p>
+      <div class="hero-badges">
+        <span class="badge badge-green">Azure SQL Database</span>
+        <span class="badge badge-blue">Managed Instance</span>
+        <span class="badge badge-yellow">SQL on VM</span>
+      </div>
+    </div>
+
+    <div class="section" id="s2-models">
+      <div class="section-header"><span class="section-num">01</span><h2>The Three Deployment Models</h2></div>
+      <div class="card-grid">
+        <div class="card"><div class="card-icon">☁️</div><div class="card-title">Azure SQL Database</div><div class="card-desc">Fully managed PaaS, single database or elastic pool. No OS/patch management. Fastest to provision.</div></div>
+        <div class="card"><div class="card-icon">🏛️</div><div class="card-title">Azure SQL Managed Instance</div><div class="card-desc">PaaS with near-100% SQL Server surface area — cross-db queries, SQL Agent, CLR, linked servers.</div></div>
+        <div class="card"><div class="card-icon">🖥️</div><div class="card-title">SQL Server on Azure VM</div><div class="card-desc">IaaS — full OS & SQL Server control, for lift-and-shift or features unsupported elsewhere.</div></div>
+      </div>
+      <table>
+        <tr><th>Aspect</th><th>SQL Database</th><th>Managed Instance</th><th>SQL on VM</th></tr>
+        <tr><td>Management model</td><td>PaaS (fully managed)</td><td>PaaS (fully managed)</td><td>IaaS (you patch/manage OS)</td></tr>
+        <tr><td>SQL Server surface area</td><td>Subset, DB-scoped</td><td>Near 100% (instance-scoped)</td><td>100%</td></tr>
+        <tr><td>Cross-database queries</td><td>Limited (elastic query)</td><td>Yes, native</td><td>Yes, native</td></tr>
+        <tr><td>SQL Server Agent</td><td>No (use elastic jobs)</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>Best for</td><td>New cloud-native apps, SaaS multi-tenant</td><td>Lift-and-shift needing instance features</td><td>Full control, legacy dependencies</td></tr>
+      </table>
+    </div>
+
+    <div class="section" id="s2-billing">
+      <div class="section-header"><span class="section-num">02</span><h2>Purchasing Models</h2></div>
+      <table>
+        <tr><th>Model</th><th>How it's billed</th><th>Good for</th></tr>
+        <tr><td>DTU-based</td><td>Bundled compute+storage+IO unit (Basic/Standard/Premium tiers)</td><td>Simple, predictable workloads</td></tr>
+        <tr><td>vCore-based</td><td>Compute (vCores) and storage billed independently; Azure Hybrid Benefit eligible</td><td>Fine-grained control, licensing reuse</td></tr>
+        <tr><td>Serverless (vCore)</td><td>Auto-pauses & auto-scales compute; billed per second</td><td>Intermittent, unpredictable workloads</td></tr>
+        <tr><td>Elastic pool</td><td>Shared vCore/DTU pool across many databases</td><td>Many databases with variable, non-simultaneous peaks</td></tr>
+      </table>
+      <div class="info-box tip">
+        <span class="icon">💡</span>
+        <div class="info-box-content"><strong>Service tiers</strong> within vCore model: General Purpose (balanced), Business Critical (highest resilience, local SSD, read replicas), Hyperscale (rapid storage scale-out, fast backups/restores).</div>
+      </div>
+    </div>
+
+    <div class="section" id="s2-ha">
+      <div class="section-header"><span class="section-num">03</span><h2>High Availability & Disaster Recovery</h2></div>
+      <ul class="styled-list">
+        <li><strong>Built-in HA</strong> — every Azure SQL tier includes automatic replication & failover within a region (architecture depends on tier).</li>
+        <li><strong>Active geo-replication</strong> — up to 4 readable secondary databases in other regions, manual failover.</li>
+        <li><strong>Auto-failover groups</strong> — group of databases that fail over together to a secondary region, with a listener endpoint so connection strings don't change.</li>
+        <li><strong>Point-in-time restore (PITR)</strong> — restore to any point within the retention window (7–35 days) automatically, no extra config.</li>
+        <li><strong>Long-term retention (LTR)</strong> — weekly/monthly/yearly backups kept up to 10 years.</li>
+      </ul>
+    </div>
+
+    <div class="section" id="s2-connect">
+      <div class="section-header"><span class="section-num">04</span><h2>Connecting & Firewalls</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>t-sql — server-level firewall rule</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="kw">EXECUTE</span> sp_set_firewall_rule
+  @name = <span class="str">N'AllowOfficeIP'</span>,
+  @start_ip_address = <span class="str">'203.0.113.10'</span>,
+  @end_ip_address   = <span class="str">'203.0.113.10'</span>;</pre>
+      </div>
+      <p>Connections are protected by server & database-level firewall rules, optional VNet service endpoints / Private Link, and Azure AD (Microsoft Entra ID) authentication alongside SQL authentication.</p>
+    </div>
+  </div><!-- /page 2 -->
+
+  <!-- ══════════════════ PAGE 3 — ADVANCED T-SQL ══════════════════ -->
+  <div class="page" id="p3">
+    <div class="hero">
+      <div class="hero-eyebrow">Page 03 / SQL Server & T-SQL</div>
+      <h1>Advanced <span>T-SQL</span></h1>
+      <p class="hero-desc">Programmable objects and transactional guarantees — stored procedures, functions, triggers, views, and how SQL Server keeps data consistent under concurrency.</p>
+      <div class="hero-badges">
+        <span class="badge badge-green">Stored Procs</span>
+        <span class="badge badge-blue">Transactions</span>
+        <span class="badge badge-yellow">Triggers</span>
+      </div>
+    </div>
+
+    <div class="section" id="s3-procs">
+      <div class="section-header"><span class="section-num">01</span><h2>Stored Procedures & Functions</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>t-sql — proc & scalar/table functions</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="kw">CREATE PROCEDURE</span> usp_GetEmployeesByDept
+  @DeptId <span class="cls">INT</span>
+<span class="kw">AS</span>
+<span class="kw">BEGIN</span>
+  <span class="kw">SET NOCOUNT ON</span>;
+  <span class="kw">SELECT</span> EmpId, Name, Salary <span class="kw">FROM</span> Employees <span class="kw">WHERE</span> DeptId = @DeptId;
+<span class="kw">END</span>;
+<span class="kw">EXEC</span> usp_GetEmployeesByDept @DeptId = <span class="num">2</span>;
+
+<span class="cmt">-- Scalar function</span>
+<span class="kw">CREATE FUNCTION</span> fn_AnnualBonus(@Salary <span class="cls">DECIMAL</span>(<span class="num">10</span>,<span class="num">2</span>))
+<span class="kw">RETURNS DECIMAL</span>(<span class="num">10</span>,<span class="num">2</span>)
+<span class="kw">AS BEGIN RETURN</span> @Salary * <span class="num">0.1</span>; <span class="kw">END</span>;
+
+<span class="cmt">-- Inline table-valued function</span>
+<span class="kw">CREATE FUNCTION</span> fn_TopEarners(@DeptId <span class="cls">INT</span>)
+<span class="kw">RETURNS TABLE AS RETURN</span>
+  <span class="kw">SELECT</span> Name, Salary <span class="kw">FROM</span> Employees <span class="kw">WHERE</span> DeptId = @DeptId <span class="kw">AND</span> Salary <span class="op">&gt;</span> <span class="num">80000</span>;</pre>
+      </div>
+      <div class="info-box note">
+        <span class="icon">📘</span>
+        <div class="info-box-content">Stored procedures can perform DML and have side effects; functions must be deterministic-ish and cannot modify database state (no INSERT/UPDATE/DELETE on permanent tables).</div>
+      </div>
+    </div>
+
+    <div class="section" id="s3-transactions">
+      <div class="section-header"><span class="section-num">02</span><h2>Transactions & ACID</h2></div>
+      <p>A transaction groups statements so they succeed or fail as a unit, guaranteeing <strong style="color:var(--text)">ACID</strong> properties: Atomicity, Consistency, Isolation, Durability.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>t-sql — explicit transaction</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="kw">BEGIN TRANSACTION</span>;
+<span class="kw">BEGIN TRY</span>
+  <span class="kw">UPDATE</span> Accounts <span class="kw">SET</span> Balance = Balance <span class="op">-</span> <span class="num">100</span> <span class="kw">WHERE</span> AcctId = <span class="num">1</span>;
+  <span class="kw">UPDATE</span> Accounts <span class="kw">SET</span> Balance = Balance <span class="op">+</span> <span class="num">100</span> <span class="kw">WHERE</span> AcctId = <span class="num">2</span>;
+  <span class="kw">COMMIT</span>;
+<span class="kw">END TRY</span>
+<span class="kw">BEGIN CATCH</span>
+  <span class="kw">ROLLBACK</span>;
+  <span class="kw">THROW</span>;
+<span class="kw">END CATCH</span>;</pre>
+      </div>
+      <table>
+        <tr><th>Isolation Level</th><th>Dirty Read</th><th>Non-Repeatable Read</th><th>Phantom Read</th></tr>
+        <tr><td>READ UNCOMMITTED</td><td>Possible</td><td>Possible</td><td>Possible</td></tr>
+        <tr><td>READ COMMITTED (default)</td><td>Prevented</td><td>Possible</td><td>Possible</td></tr>
+        <tr><td>REPEATABLE READ</td><td>Prevented</td><td>Prevented</td><td>Possible</td></tr>
+        <tr><td>SERIALIZABLE</td><td>Prevented</td><td>Prevented</td><td>Prevented</td></tr>
+        <tr><td>SNAPSHOT</td><td>Prevented</td><td>Prevented</td><td>Prevented (via row versioning)</td></tr>
+      </table>
+    </div>
+
+    <div class="section" id="s3-triggers">
+      <div class="section-header"><span class="section-num">03</span><h2>Triggers & Views</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>t-sql — trigger & view</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="kw">CREATE TRIGGER</span> trg_AuditSalaryChange
+<span class="kw">ON</span> Employees
+<span class="kw">AFTER UPDATE AS</span>
+<span class="kw">BEGIN</span>
+  <span class="kw">INSERT INTO</span> SalaryAudit (EmpId, OldSalary, NewSalary, ChangedAt)
+  <span class="kw">SELECT</span> i.EmpId, d.Salary, i.Salary, <span class="fn">GETDATE</span>()
+  <span class="kw">FROM</span> inserted i <span class="kw">JOIN</span> deleted d <span class="kw">ON</span> i.EmpId = d.EmpId
+  <span class="kw">WHERE</span> i.Salary <span class="op">&lt;&gt;</span> d.Salary;
+<span class="kw">END</span>;
+
+<span class="kw">CREATE VIEW</span> vw_ActiveEmployees <span class="kw">AS</span>
+<span class="kw">SELECT</span> EmpId, Name, DeptId <span class="kw">FROM</span> Employees <span class="kw">WHERE</span> IsActive = <span class="num">1</span>;</pre>
+      </div>
+      <div class="info-box tip">
+        <span class="icon">💡</span>
+        <div class="info-box-content">Inside a trigger, the special <code>inserted</code> and <code>deleted</code> tables hold the new and old row images — used heavily for auditing patterns.</div>
+      </div>
+    </div>
+  </div><!-- /page 3 -->
+
+  <!-- ══════════════════ PAGE 4 — PERFORMANCE & TUNING ══════════════════ -->
+  <div class="page" id="p4">
+    <div class="hero">
+      <div class="hero-eyebrow">Page 04 / SQL Server & Azure SQL</div>
+      <h1>Performance <span>& Tuning</span></h1>
+      <p class="hero-desc">Indexing strategy, reading execution plans, and the tools SQL Server/Azure SQL give you to find and fix slow queries.</p>
+      <div class="hero-badges">
+        <span class="badge badge-green">Indexes</span>
+        <span class="badge badge-blue">Execution Plans</span>
+        <span class="badge badge-yellow">Query Store</span>
+      </div>
+    </div>
+
+    <div class="section" id="s4-indexes">
+      <div class="section-header"><span class="section-num">01</span><h2>Indexes</h2></div>
+      <table>
+        <tr><th>Index type</th><th>Description</th></tr>
+        <tr><td>Clustered</td><td>Defines the physical row order; one per table (often the PK)</td></tr>
+        <tr><td>Nonclustered</td><td>Separate structure pointing back to the data row; many per table</td></tr>
+        <tr><td>Unique</td><td>Enforces uniqueness on the indexed column(s)</td></tr>
+        <tr><td>Covering index</td><td>Includes all columns a query needs, avoiding a lookup back to the base table</td></tr>
+        <tr><td>Filtered index</td><td>Indexes only a subset of rows matching a WHERE predicate</td></tr>
+        <tr><td>Columnstore</td><td>Column-oriented storage for large analytical scans/aggregations</td></tr>
+      </table>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>t-sql — creating indexes</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="kw">CREATE NONCLUSTERED INDEX</span> IX_Employees_DeptId
+<span class="kw">ON</span> Employees(DeptId)
+<span class="kw">INCLUDE</span> (Name, Salary);          <span class="cmt">-- covering index</span>
+
+<span class="kw">CREATE UNIQUE INDEX</span> UX_Employees_Email <span class="kw">ON</span> Employees(Email);
+
+<span class="kw">CREATE NONCLUSTERED INDEX</span> IX_ActiveOnly
+<span class="kw">ON</span> Employees(DeptId) <span class="kw">WHERE</span> IsActive = <span class="num">1</span>;   <span class="cmt">-- filtered index</span></pre>
+      </div>
+      <div class="info-box warning">
+        <span class="icon">⚠️</span>
+        <div class="info-box-content">Every index speeds up reads but slows down writes (INSERT/UPDATE/DELETE must maintain it) and adds storage — index only what your query patterns actually need.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s4-plans">
+      <div class="section-header"><span class="section-num">02</span><h2>Execution Plans</h2></div>
+      <p>The <strong style="color:var(--text)">query optimizer</strong> picks an execution plan based on statistics (row count estimates). Reading the plan reveals what's actually slow.</p>
+      <table>
+        <tr><th>Operator</th><th>Meaning</th></tr>
+        <tr><td>Table Scan / Clustered Index Scan</td><td>Reads every row — expensive on large tables, often means a missing index</td></tr>
+        <tr><td>Index Seek</td><td>Jumps directly to matching rows via an index — fast</td></tr>
+        <tr><td>Key Lookup</td><td>Nonclustered index found the row, then fetches remaining columns from the clustered index</td></tr>
+        <tr><td>Nested Loops Join</td><td>Good for small outer input joined to an indexed inner input</td></tr>
+        <tr><td>Hash Match Join</td><td>Good for large, unsorted inputs without useful indexes</td></tr>
+        <tr><td>Sort</td><td>Explicit sort operator — can be costly; sometimes avoidable with the right index order</td></tr>
+      </table>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>t-sql — inspect a plan</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="kw">SET</span> STATISTICS IO <span class="kw">ON</span>;
+<span class="kw">SET</span> STATISTICS TIME <span class="kw">ON</span>;
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> Employees <span class="kw">WHERE</span> DeptId = <span class="num">2</span>;
+<span class="cmt">-- or in SSMS: Ctrl+M to include the actual execution plan</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="s4-tools">
+      <div class="section-header"><span class="section-num">03</span><h2>Tuning Tools</h2></div>
+      <ul class="styled-list">
+        <li><strong>Query Store</strong> — tracks query plans & runtime stats over time, lets you force a known-good plan.</li>
+        <li><strong>Database Engine Tuning Advisor</strong> — analyzes a workload and recommends indexes/partitioning.</li>
+        <li><strong>Automatic tuning (Azure SQL)</strong> — can auto-create/drop indexes and auto-correct plan regressions.</li>
+        <li><strong>sys.dm_exec_query_stats / sys.dm_db_index_usage_stats</strong> — DMVs for finding expensive or unused indexes.</li>
+        <li><strong>UPDATE STATISTICS</strong> — refreshes the optimizer's row-count estimates when data has changed significantly.</li>
+      </ul>
+    </div>
+  </div><!-- /page 4 -->
+
+  <!-- ══════════════════ PAGE 5 — INTERVIEW PREP ══════════════════ -->
+  <div class="page" id="p5">
+    <div class="hero">
+      <div class="hero-eyebrow">Page 05 / Interview Preparation</div>
+      <h1>SQL <span>Interview Prep</span></h1>
+      <p class="hero-desc">Common SQL / Azure SQL interview questions, grouped by topic. Click a question to reveal a concise answer you can build on out loud.</p>
+      <div class="hero-badges">
+        <span class="badge badge-green">Conceptual</span>
+        <span class="badge badge-blue">Coding</span>
+        <span class="badge badge-yellow">Azure-specific</span>
+      </div>
+    </div>
+
+    <div class="section" id="s5-basics">
+      <div class="section-header"><span class="section-num">01</span><h2>Core SQL Concepts</h2></div>
+
+      <details class="qa"><summary>What's the difference between DELETE, TRUNCATE, and DROP?<span class="chev">▸</span></summary>
+        <div class="qa-answer"><strong>DELETE</strong> removes rows one at a time, is logged, can be filtered with WHERE, and can be rolled back. <strong>TRUNCATE</strong> deallocates all pages at once, is minimally logged, resets identity, and can't use WHERE. <strong>DROP</strong> removes the entire table object, including its structure, from the database.</div>
+      </details>
+
+      <details class="qa"><summary>What is the difference between WHERE and HAVING?<span class="chev">▸</span></summary>
+        <div class="qa-answer"><code>WHERE</code> filters individual rows before grouping; <code>HAVING</code> filters groups after <code>GROUP BY</code> has aggregated them. You can't use an aggregate function like <code>SUM()</code> in <code>WHERE</code>, but you can in <code>HAVING</code>.</div>
+      </details>
+
+      <details class="qa"><summary>Explain the difference between UNION and UNION ALL.<span class="chev">▸</span></summary>
+        <div class="qa-answer"><code>UNION</code> combines result sets and removes duplicate rows (requires an implicit sort/dedupe, so it's slower). <code>UNION ALL</code> keeps all rows including duplicates and is faster since no dedupe pass is needed.</div>
+      </details>
+
+      <details class="qa"><summary>What is normalization? Explain 1NF, 2NF, 3NF briefly.<span class="chev">▸</span></summary>
+        <div class="qa-answer">Normalization organizes data to reduce redundancy and avoid update anomalies. <strong>1NF</strong>: atomic columns, no repeating groups. <strong>2NF</strong>: 1NF + every non-key column depends on the whole primary key (no partial dependency on composite keys). <strong>3NF</strong>: 2NF + no column depends on another non-key column (no transitive dependency).</div>
+      </details>
+
+      <details class="qa"><summary>What's the difference between a primary key and a unique key?<span class="chev">▸</span></summary>
+        <div class="qa-answer">A table can have only one primary key, which disallows NULLs and is typically the clustering key by default. A table can have multiple unique keys/constraints, and a unique key can allow one NULL value (per column, in SQL Server).</div>
+      </details>
+
+      <details class="qa"><summary>What is a NULL and how does it behave in comparisons?<span class="chev">▸</span></summary>
+        <div class="qa-answer">NULL represents unknown/missing data. Any comparison with NULL using <code>=</code> or <code>&lt;&gt;</code> returns UNKNOWN, not TRUE/FALSE — that's why you must use <code>IS NULL</code> / <code>IS NOT NULL</code>. Aggregate functions (except COUNT(*)) ignore NULLs.</div>
+      </details>
+    </div>
+
+    <div class="section" id="s5-joins-sub">
+      <div class="section-header"><span class="section-num">02</span><h2>Joins, Subqueries & Set Operations</h2></div>
+
+      <details class="qa"><summary>What's the difference between a correlated and a non-correlated subquery?<span class="chev">▸</span></summary>
+        <div class="qa-answer">A non-correlated subquery runs once, independently of the outer query. A correlated subquery references a column from the outer query and conceptually re-executes for each outer row — generally slower unless the optimizer rewrites it as a join.</div>
+      </details>
+
+      <details class="qa"><summary>How would you find duplicate rows in a table?<span class="chev">▸</span></summary>
+        <div class="qa-answer">Group by the columns that define a "duplicate" and filter with HAVING COUNT(*) &gt; 1, e.g. <code>SELECT Email, COUNT(*) FROM Users GROUP BY Email HAVING COUNT(*) &gt; 1</code>. To delete duplicates while keeping one, use ROW_NUMBER() in a CTE and delete rows where rn &gt; 1.</div>
+      </details>
+
+      <details class="qa"><summary>What is the difference between EXISTS and IN?<span class="chev">▸</span></summary>
+        <div class="qa-answer"><code>EXISTS</code> stops as soon as it finds one matching row (semi-join, efficient with large/correlated subqueries) and treats NULLs safely. <code>IN</code> materializes the full list and can behave unexpectedly if that list contains NULL (with NOT IN, a NULL in the list makes the whole condition return no rows).</div>
+      </details>
+
+      <details class="qa"><summary>How do you find the second-highest salary in a table?<span class="chev">▸</span></summary>
+        <div class="qa-answer">Several valid approaches: <code>SELECT MAX(Salary) FROM Employees WHERE Salary &lt; (SELECT MAX(Salary) FROM Employees)</code>, or using <code>DENSE_RANK() OVER (ORDER BY Salary DESC)</code> in a CTE and filtering rank = 2 — the window-function approach also generalizes cleanly to "Nth highest."</div>
+      </details>
+    </div>
+
+    <div class="section" id="s5-indexes-perf">
+      <div class="section-header"><span class="section-num">03</span><h2>Indexing & Performance</h2></div>
+
+      <details class="qa"><summary>What's the difference between a clustered and non-clustered index?<span class="chev">▸</span></summary>
+        <div class="qa-answer">A clustered index determines the physical storage order of the table's rows — there can only be one. A non-clustered index is a separate structure with a copy of the key columns plus a pointer (or clustering key) back to the actual row — a table can have many.</div>
+      </details>
+
+      <details class="qa"><summary>What is a covering index and why does it help?<span class="chev">▸</span></summary>
+        <div class="qa-answer">A covering index includes every column a query needs (via key columns and/or INCLUDE columns), so SQL Server can satisfy the query entirely from the index without a "key lookup" back to the base table — this reduces I/O significantly.</div>
+      </details>
+
+      <details class="qa"><summary>Why might an index not be used even though it exists?<span class="chev">▸</span></summary>
+        <div class="qa-answer">Common causes: outdated statistics, a function or implicit conversion applied to the indexed column ("non-sargable" predicate, e.g. <code>WHERE YEAR(OrderDate)=2026</code>), low selectivity (the optimizer decides a scan is cheaper), leading wildcard LIKE searches (<code>LIKE '%abc'</code>), or parameter sniffing producing a bad cached plan.</div>
+      </details>
+
+      <details class="qa"><summary>What is parameter sniffing?<span class="chev">▸</span></summary>
+        <div class="qa-answer">SQL Server compiles and caches a query plan based on the parameter values used the first time it runs. If later calls use very different values with a different optimal plan, performance can suffer. Fixes include <code>OPTION (RECOMPILE)</code>, query hints, or plan guides/Query Store forced plans.</div>
+      </details>
+    </div>
+
+    <div class="section" id="s5-transactions-q">
+      <div class="section-header"><span class="section-num">04</span><h2>Transactions & Concurrency</h2></div>
+
+      <details class="qa"><summary>Explain ACID properties.<span class="chev">▸</span></summary>
+        <div class="qa-answer"><strong>Atomicity</strong>: all statements in a transaction succeed or none do. <strong>Consistency</strong>: a transaction moves the database from one valid state to another, respecting constraints. <strong>Isolation</strong>: concurrent transactions don't see each other's uncommitted changes (level depends on isolation setting). <strong>Durability</strong>: once committed, changes survive a crash.</div>
+      </details>
+
+      <details class="qa"><summary>What is a deadlock and how do you resolve/avoid it?<span class="chev">▸</span></summary>
+        <div class="qa-answer">A deadlock happens when two transactions each hold a lock the other needs, so neither can proceed. SQL Server detects this and kills one transaction (the "deadlock victim"). Avoid it by accessing tables/rows in a consistent order across transactions, keeping transactions short, and using appropriate isolation levels.</div>
+      </details>
+
+      <details class="qa"><summary>What's the difference between optimistic and pessimistic concurrency?<span class="chev">▸</span></summary>
+        <div class="qa-answer">Pessimistic concurrency locks data as soon as it's read, blocking others until the transaction finishes. Optimistic concurrency (e.g. SNAPSHOT isolation, row versioning) lets transactions read without locking and only checks for conflicts at commit time — better throughput when conflicts are rare.</div>
+      </details>
+    </div>
+
+    <div class="section" id="s5-azure-q">
+      <div class="section-header"><span class="section-num">05</span><h2>Azure SQL Specific</h2></div>
+
+      <details class="qa"><summary>When would you pick Azure SQL Managed Instance over Azure SQL Database?<span class="chev">▸</span></summary>
+        <div class="qa-answer">When you need near-complete SQL Server instance-level surface area — cross-database queries/transactions, SQL Server Agent, CLR, Service Broker, or a straightforward lift-and-shift of an on-prem instance with minimal app changes — while still wanting PaaS management.</div>
+      </details>
+
+      <details class="qa"><summary>What's the difference between DTU-based and vCore-based purchasing models?<span class="chev">▸</span></summary>
+        <div class="qa-answer">DTU bundles compute, storage, and I/O into one abstract unit across a few fixed tiers — simple but less transparent. vCore lets you choose compute and storage independently, supports Azure Hybrid Benefit (bring your own SQL Server license for savings), and includes serverless/Hyperscale options DTU doesn't.</div>
+      </details>
+
+      <details class="qa"><summary>What is an auto-failover group used for?<span class="chev">▸</span></summary>
+        <div class="qa-answer">It groups one or more databases that fail over together to a secondary region, and exposes read-write and read-only listener endpoints so the application's connection string doesn't need to change after a failover — simplifying disaster recovery for multi-database applications.</div>
+      </details>
+
+      <details class="qa"><summary>How does Azure SQL Database handle backups by default?<span class="chev">▸</span></summary>
+        <div class="qa-answer">Automatic backups (full weekly, differential every ~12 hours, log backups every 5–10 minutes) are taken with no configuration needed, enabling point-in-time restore within a 7–35 day retention window; long-term retention policies can keep backups for up to 10 years.</div>
+      </details>
+    </div>
+
+    <div class="section" id="s5-scenario">
+      <div class="section-header"><span class="section-num">06</span><h2>Scenario / Coding Questions</h2></div>
+
+      <details class="qa"><summary>Write a query to find employees earning more than their manager.<span class="chev">▸</span></summary>
+        <div class="qa-answer"><code>SELECT e.Name FROM Employees e JOIN Employees m ON e.ManagerId = m.EmpId WHERE e.Salary &gt; m.Salary;</code> — a classic self-join question testing whether you can relate a table to itself.</div>
+      </details>
+
+      <details class="qa"><summary>Write a query to get the top 3 highest-paid employees per department.<span class="chev">▸</span></summary>
+        <div class="qa-answer">Use a window function in a CTE: <code>WITH Ranked AS (SELECT *, DENSE_RANK() OVER (PARTITION BY DeptId ORDER BY Salary DESC) AS rnk FROM Employees) SELECT * FROM Ranked WHERE rnk &lt;= 3;</code> — this "top N per group" pattern comes up constantly.</div>
+      </details>
+
+      <details class="qa"><summary>How would you pivot rows into columns in T-SQL?<span class="chev">▸</span></summary>
+        <div class="qa-answer">Use the <code>PIVOT</code> operator, or a manual conditional aggregate: <code>SELECT DeptId, SUM(CASE WHEN Year=2025 THEN Amount END) AS Y2025, SUM(CASE WHEN Year=2026 THEN Amount END) AS Y2026 FROM Sales GROUP BY DeptId;</code> — the CASE approach is often easier to reason about and extend.</div>
+      </details>
+
+      <details class="qa"><summary>How do you safely upsert data (insert-or-update) in T-SQL?<span class="chev">▸</span></summary>
+        <div class="qa-answer">Use <code>MERGE</code> with WHEN MATCHED / WHEN NOT MATCHED clauses, wrapped in an explicit transaction with the right isolation level (or a HOLDLOCK hint) to avoid race conditions under concurrency — a plain "check-then-insert" without locking can duplicate rows under load.</div>
+      </details>
+    </div>
+  </div><!-- /page 5 -->
+
+  <!-- ══════════════════ PAGE 6 — CHEATSHEET ══════════════════ -->
+  <div class="page" id="p6">
+    <div class="hero">
+      <div class="hero-eyebrow">Page 06 / Reference</div>
+      <h1>Quick <span>Cheatsheet</span></h1>
+      <p class="hero-desc">Fast reference for T-SQL syntax, data types, and Azure SQL terminology.</p>
+      <div class="hero-badges">
+        <span class="badge badge-green">Quick Reference</span>
+      </div>
+    </div>
+
+    <div class="section" id="s6-datatypes">
+      <div class="section-header"><span class="section-num">01</span><h2>Common Data Types</h2></div>
+      <table>
+        <tr><th>Type</th><th>Use</th></tr>
+        <tr><td>INT / BIGINT</td><td>Whole numbers</td></tr>
+        <tr><td>DECIMAL(p,s)</td><td>Exact fixed-precision numbers (money, quantities)</td></tr>
+        <tr><td>NVARCHAR(n)</td><td>Variable-length Unicode text</td></tr>
+        <tr><td>DATE / DATETIME2</td><td>Calendar date / date+time with higher precision</td></tr>
+        <tr><td>BIT</td><td>Boolean (0/1)</td></tr>
+        <tr><td>UNIQUEIDENTIFIER</td><td>GUID values</td></tr>
+      </table>
+    </div>
+
+    <div class="section" id="s6-tsql-quick">
+      <div class="section-header"><span class="section-num">02</span><h2>T-SQL Quick Reference</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>t-sql essentials</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="kw">SELECT</span> TOP <span class="num">10</span> * <span class="kw">FROM</span> t <span class="kw">ORDER BY</span> col <span class="kw">DESC</span>;
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> t1 <span class="kw">JOIN</span> t2 <span class="kw">ON</span> t1.id = t2.id;
+<span class="kw">INSERT INTO</span> t (a,b) <span class="kw">VALUES</span> (<span class="num">1</span>,<span class="str">'x'</span>);
+<span class="kw">UPDATE</span> t <span class="kw">SET</span> a <span class="op">=</span> <span class="num">2</span> <span class="kw">WHERE</span> id <span class="op">=</span> <span class="num">1</span>;
+<span class="kw">DELETE FROM</span> t <span class="kw">WHERE</span> id <span class="op">=</span> <span class="num">1</span>;
+<span class="kw">MERGE INTO</span> t <span class="kw">USING</span> src <span class="kw">ON</span> t.id<span class="op">=</span>src.id
+  <span class="kw">WHEN MATCHED THEN UPDATE SET</span> * <span class="kw">WHEN NOT MATCHED THEN INSERT</span> *;</pre>
+      </div>
+    </div>
+
+    <div class="section" id="s6-terms">
+      <div class="section-header"><span class="section-num">03</span><h2>Azure SQL Terminology</h2></div>
+      <table>
+        <tr><th>Term</th><th>Meaning</th></tr>
+        <tr><td>DTU</td><td>Database Transaction Unit — bundled compute/IO/storage billing unit</td></tr>
+        <tr><td>vCore</td><td>Independent compute billing unit, paired with separate storage cost</td></tr>
+        <tr><td>Elastic pool</td><td>Shared resource pool across many databases</td></tr>
+        <tr><td>Failover group</td><td>Databases that fail over together with a stable listener endpoint</td></tr>
+        <tr><td>PITR</td><td>Point-In-Time Restore — restore to any moment within retention window</td></tr>
+        <tr><td>Hyperscale</td><td>vCore tier with fast storage auto-scaling and near-instant backups</td></tr>
+      </table>
+      <div class="divider"></div>
+      <div class="info-box tip">
+        <span class="icon">💡</span>
+        <div class="info-box-content">Use the sidebar search on each tab to jump straight to a section. On the Interview Prep tab, click any question to expand its answer.</div>
+      </div>
+    </div>
+  </div><!-- /page 6 -->
+
+  </main>
+</div><!-- /layout -->
+
+<button id="back-top" onclick="scrollToTop()">↑ TOP</button>
+
+<!-- ── TOC DATA ── -->
+<script>
+const tocData = {
+  p1: {
+    title: "🧾 SQL Fundamentals",
+    sections: [
+      { label: "Fundamentals", links: [
+        { href: "s1-categories", icon: "📖", text: "SQL Command Categories" },
+        { href: "s1-ddl-dml", icon: "🏗️", text: "DDL & DML Basics" },
+        { href: "s1-joins", icon: "🔗", text: "Joins" },
+        { href: "s1-aggregation", icon: "📊", text: "Aggregation & Grouping" },
+        { href: "s1-subqueries", icon: "🧩", text: "Subqueries & CTEs" },
+        { href: "s1-window", icon: "🪟", text: "Window Functions" },
+      ]}
+    ]
+  },
+  p2: {
+    title: "☁️ Azure SQL Options",
+    sections: [
+      { label: "Deployment", links: [
+        { href: "s2-models", icon: "🏗️", text: "Three Deployment Models" },
+        { href: "s2-billing", icon: "💳", text: "Purchasing Models" },
+        { href: "s2-ha", icon: "🛡️", text: "High Availability & DR" },
+        { href: "s2-connect", icon: "🔌", text: "Connecting & Firewalls" },
+      ]}
+    ]
+  },
+  p3: {
+    title: "⚙️ Advanced T-SQL",
+    sections: [
+      { label: "Advanced T-SQL", links: [
+        { href: "s3-procs", icon: "🔧", text: "Stored Procedures & Functions" },
+        { href: "s3-transactions", icon: "🔄", text: "Transactions & ACID" },
+        { href: "s3-triggers", icon: "⚡", text: "Triggers & Views" },
+      ]}
+    ]
+  },
+  p4: {
+    title: "🚀 Performance & Tuning",
+    sections: [
+      { label: "Performance", links: [
+        { href: "s4-indexes", icon: "📇", text: "Indexes" },
+        { href: "s4-plans", icon: "🗺️", text: "Execution Plans" },
+        { href: "s4-tools", icon: "🛠️", text: "Tuning Tools" },
+      ]}
+    ]
+  },
+  p5: {
+    title: "🎯 Interview Prep",
+    sections: [
+      { label: "Interview Questions", links: [
+        { href: "s5-basics", icon: "📖", text: "Core SQL Concepts" },
+        { href: "s5-joins-sub", icon: "🔗", text: "Joins, Subqueries & Sets" },
+        { href: "s5-indexes-perf", icon: "📇", text: "Indexing & Performance" },
+        { href: "s5-transactions-q", icon: "🔄", text: "Transactions & Concurrency" },
+        { href: "s5-azure-q", icon: "☁️", text: "Azure SQL Specific" },
+        { href: "s5-scenario", icon: "💻", text: "Scenario / Coding Questions" },
+      ]}
+    ]
+  },
+  p6: {
+    title: "📋 Cheatsheet",
+    sections: [
+      { label: "Reference", links: [
+        { href: "s6-datatypes", icon: "🔤", text: "Common Data Types" },
+        { href: "s6-tsql-quick", icon: "🧾", text: "T-SQL Quick Reference" },
+        { href: "s6-terms", icon: "☁️", text: "Azure SQL Terminology" },
+      ]}
+    ]
+  }
+};
+
+let currentPage = 'p1';
+
+function buildTOC(pageId) {
+  const data = tocData[pageId];
+  const container = document.getElementById('toc-content');
+  document.getElementById('sidebar-title').textContent = data.title;
+  let html = '';
+  data.sections.forEach(sec => {
+    html += `<div class="toc-section">`;
+    if (sec.label) html += `<div class="toc-section-label">${sec.label}</div>`;
+    sec.links.forEach(l => {
+      html += `<a class="toc-link" onclick="scrollToSection('${l.href}')">
+        <span class="toc-icon">${l.icon}</span>${l.text}
+      </a>`;
+    });
+    html += `</div>`;
+  });
+  container.innerHTML = html;
+}
+
+function switchPage(pageId, tab) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+  tab.classList.add('active');
+  currentPage = pageId;
+  document.getElementById('main').scrollTop = 0;
+  buildTOC(pageId);
+  document.getElementById('toc-search').value = '';
+  closeSidebar();
+}
+
+function scrollToSection(id) {
+  const el = document.getElementById(id);
+  if (el) {
+    document.getElementById('main').scrollTo({ top: el.offsetTop - 20, behavior: 'smooth' });
+    document.querySelectorAll('.toc-link').forEach(l => l.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+  }
+  closeSidebar();
+}
+
+function scrollToTop() {
+  document.getElementById('main').scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.getElementById('main').addEventListener('scroll', function() {
+  const btn = document.getElementById('back-top');
+  btn.classList.toggle('visible', this.scrollTop > 400);
+});
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+function filterTOC(q) {
+  q = q.toLowerCase();
+  document.querySelectorAll('.toc-link').forEach(link => {
+    link.style.display = link.textContent.toLowerCase().includes(q) ? 'flex' : 'none';
+  });
+  document.querySelectorAll('.toc-section-label').forEach(label => {
+    const visible = [...label.parentElement.querySelectorAll('.toc-link')].some(l => l.style.display !== 'none');
+    label.style.display = visible ? '' : 'none';
+  });
+}
+
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  navigator.clipboard.writeText(pre.innerText).then(() => {
+    btn.textContent = 'COPIED!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+buildTOC('p1');
+</script>
+
+<!-- ══════════ Learning Hub integration (injected) ══════════ -->
+<style>
+  #hub-back-btn {
+    position: fixed; top: 10px; right: 16px; z-index: 999;
+    display: flex; align-items: center; gap: 6px;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 12px; font-weight: 600; letter-spacing: .03em;
+    color: #0a0a0a; background: #00ff88;
+    padding: 7px 13px; border-radius: 20px; text-decoration: none;
+    box-shadow: 0 2px 14px rgba(0,255,136,.35);
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  #hub-back-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 18px rgba(0,255,136,.5); }
+  .search-highlight-pulse {
+    animation: hubPulse 1.4s ease-out 2;
+    border-radius: 10px;
+  }
+  @keyframes hubPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(0,255,136,.55); }
+    70%  { box-shadow: 0 0 0 14px rgba(0,255,136,0); }
+    100% { box-shadow: 0 0 0 0 rgba(0,255,136,0); }
+  }
+  @media (max-width: 640px) { #hub-back-btn span.lbl { display: none; } }
+</style>
+<a id="hub-back-btn" href="../index.html" title="Back to Learning Hub">&#8592; <span class="lbl">Hub</span></a>
+<script>
+(function () {
+  function getParam(name) {
+    return new URLSearchParams(window.location.search).get(name);
+  }
+  function go() {
+    var page = getParam('page');
+    var nb = getParam('nb');
+    var sec = getParam('sec');
+    try {
+      if (page && typeof switchPage === 'function') {
+        var tab = document.querySelector('.page-tab[onclick*="\'' + page + '\'"]');
+        if (tab) switchPage(page, tab);
+      }
+    } catch (e) { /* noop */ }
+    try {
+      if (nb && typeof openNotebook === 'function') {
+        var item = document.querySelector('.toc-item[onclick*="\'' + nb + '\'"]');
+        document.querySelectorAll('.notebook-page').forEach(function(p){ p.classList.remove('active'); });
+        var target = document.getElementById(nb);
+        if (target) target.classList.add('active');
+        document.querySelectorAll('.toc-item').forEach(function(el){ el.classList.remove('active'); });
+        if (item) item.classList.add('active');
+      }
+    } catch (e) { /* noop */ }
+    if (sec) {
+      setTimeout(function () {
+        var el = document.getElementById(sec);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          el.classList.add('search-highlight-pulse');
+          setTimeout(function () { el.classList.remove('search-highlight-pulse'); }, 3000);
+        }
+      }, 200);
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', go);
+  } else {
+    go();
+  }
+})();
+</script>
+
+</body>
+</html>

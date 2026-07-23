@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shell Scripting — Complete Notes</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg: #0a0a0a;
+    --bg2: #111111;
+    --bg3: #161616;
+    --border: #222222;
+    --green: #00ff88;
+    --green-dim: #00cc6a;
+    --green-glow: rgba(0,255,136,0.15);
+    --green-subtle: rgba(0,255,136,0.07);
+    --yellow: #ffd60a;
+    --blue: #58a6ff;
+    --red: #ff6b6b;
+    --purple: #c792ea;
+    --orange: #ffab40;
+    --text: #e0e0e0;
+    --text-dim: #888;
+    --text-faint: #444;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Inter', sans-serif;
+    --sidebar-w: 280px;
+    --topnav-h: 52px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; line-height: 1.7; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+  /* ── TOP NAV (PAGES) ── */
+  #topnav {
+    position: fixed; top: 0; left: 0; right: 0; height: var(--topnav-h);
+    background: var(--bg2); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; z-index: 200; overflow-x: auto;
+    scrollbar-width: none;
+  }
+  #topnav::-webkit-scrollbar { display: none; }
+
+  .nav-logo {
+    font-family: var(--mono); font-size: 13px; font-weight: 700;
+    color: var(--green); letter-spacing: .08em; text-transform: uppercase;
+    padding: 0 20px; white-space: nowrap; display: flex; align-items: center; gap: 8px;
+    border-right: 1px solid var(--border); flex-shrink: 0;
+  }
+  .nav-logo::before { content: '>'; animation: blink 1.1s step-end infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  .page-tabs { display: flex; align-items: stretch; height: var(--topnav-h); }
+
+  .page-tab {
+    display: flex; align-items: center; gap: 7px;
+    padding: 0 18px; font-family: var(--sans); font-size: 13px;
+    color: var(--text-dim); cursor: pointer; white-space: nowrap;
+    border-bottom: 2px solid transparent; border-right: 1px solid var(--border);
+    transition: all .18s; user-select: none; flex-shrink: 0;
+  }
+  .page-tab:hover { color: var(--text); background: var(--green-subtle); }
+  .page-tab.active { color: var(--green); border-bottom-color: var(--green); background: var(--green-subtle); }
+  .page-tab .tab-icon { font-size: 14px; }
+  .page-tab .tab-num {
+    font-family: var(--mono); font-size: 10px; color: var(--text-faint);
+    background: var(--bg3); border: 1px solid var(--border);
+    padding: 1px 5px; border-radius: 3px;
+  }
+  .page-tab.active .tab-num { color: var(--green); border-color: rgba(0,255,136,.3); }
+
+  /* ── LAYOUT ── */
+  #layout {
+    display: flex; margin-top: var(--topnav-h); height: calc(100vh - var(--topnav-h)); overflow: hidden;
+  }
+
+  /* ── SIDEBAR ── */
+  #sidebar {
+    width: var(--sidebar-w); background: var(--bg2);
+    border-right: 1px solid var(--border); overflow-y: auto;
+    flex-shrink: 0; transition: transform .3s;
+  }
+  #sidebar::-webkit-scrollbar { width: 4px; }
+  #sidebar::-webkit-scrollbar-track { background: var(--bg2); }
+  #sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .sidebar-header {
+    padding: 20px 20px 16px; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--bg2); z-index: 1;
+  }
+  .sidebar-page-title {
+    font-family: var(--mono); font-size: 11px; font-weight: 700;
+    color: var(--green); letter-spacing: .1em; text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .sidebar-search { position: relative; }
+  .sidebar-search input {
+    width: 100%; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text); font-family: var(--mono);
+    font-size: 12px; padding: 7px 10px 7px 30px; outline: none; transition: border-color .2s;
+  }
+  .sidebar-search input:focus { border-color: var(--green); }
+  .sidebar-search input::placeholder { color: var(--text-faint); }
+  .sidebar-search::before {
+    content: '⌕'; position: absolute; left: 9px; top: 50%;
+    transform: translateY(-50%); color: var(--text-dim); font-size: 14px; pointer-events: none;
+  }
+
+  .toc-section { padding: 8px 0; }
+  .toc-section-label {
+    font-family: var(--mono); font-size: 10px; font-weight: 600;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--text-faint);
+    padding: 8px 20px 4px;
+  }
+  .toc-link {
+    display: flex; align-items: center; gap: 8px; padding: 6px 20px;
+    color: var(--text-dim); text-decoration: none; font-size: 13px;
+    font-family: var(--sans); border-left: 2px solid transparent;
+    transition: all .15s; cursor: pointer;
+  }
+  .toc-link:hover, .toc-link.active {
+    color: var(--green); border-left-color: var(--green); background: var(--green-subtle);
+  }
+  .toc-link .toc-icon { font-size: 11px; width: 16px; text-align: center; flex-shrink: 0; }
+
+  /* ── MAIN CONTENT ── */
+  #main {
+    flex: 1; overflow-y: auto; padding: 0 48px 80px; min-width: 0;
+  }
+  #main::-webkit-scrollbar { width: 6px; }
+  #main::-webkit-scrollbar-track { background: var(--bg); }
+  #main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ── PAGES ── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── HERO ── */
+  .hero { padding: 64px 0 48px; border-bottom: 1px solid var(--border); margin-bottom: 56px; }
+  .hero-eyebrow {
+    font-family: var(--mono); font-size: 12px; color: var(--green);
+    letter-spacing: .15em; text-transform: uppercase; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .hero-eyebrow::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(to right, var(--green-dim), transparent); max-width: 200px;
+  }
+  .hero h1 {
+    font-family: var(--mono); font-size: clamp(32px, 4vw, 58px);
+    font-weight: 700; line-height: 1.1; letter-spacing: -.02em; color: #fff; margin-bottom: 18px;
+  }
+  .hero h1 span { color: var(--green); text-shadow: 0 0 40px var(--green-glow); }
+  .hero-desc { font-size: 15px; color: var(--text-dim); max-width: 640px; line-height: 1.8; margin-bottom: 28px; }
+  .hero-badges { display: flex; gap: 10px; flex-wrap: wrap; }
+  .badge { font-family: var(--mono); font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 4px; letter-spacing: .06em; }
+  .badge-green { background: var(--green-subtle); color: var(--green); border: 1px solid rgba(0,255,136,.25); }
+  .badge-blue { background: rgba(88,166,255,.08); color: var(--blue); border: 1px solid rgba(88,166,255,.2); }
+  .badge-yellow { background: rgba(255,214,10,.07); color: var(--yellow); border: 1px solid rgba(255,214,10,.2); }
+  .badge-purple { background: rgba(199,146,234,.08); color: var(--purple); border: 1px solid rgba(199,146,234,.2); }
+
+  /* ── SECTIONS ── */
+  .section { margin-bottom: 64px; scroll-margin-top: 20px; }
+  .section-header {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 28px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+  }
+  .section-num {
+    font-family: var(--mono); font-size: 11px; color: var(--green);
+    background: var(--green-subtle); border: 1px solid rgba(0,255,136,.2);
+    padding: 3px 8px; border-radius: 4px; font-weight: 700; letter-spacing: .08em; flex-shrink: 0;
+  }
+  .section h2 { font-family: var(--mono); font-size: 22px; font-weight: 700; color: #fff; letter-spacing: -.01em; }
+  .section h3 {
+    font-family: var(--sans); font-size: 16px; font-weight: 600; color: var(--text);
+    margin: 28px 0 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .section h3::before { content: '//'; font-family: var(--mono); color: var(--green-dim); font-size: 13px; font-weight: 400; }
+  .section p { color: var(--text-dim); margin-bottom: 14px; max-width: 760px; }
+
+  /* ── CODE BLOCK ── */
+  .code-block { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin: 16px 0; }
+  .code-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; background: var(--bg2); border-bottom: 1px solid var(--border);
+    font-family: var(--mono); font-size: 11px; color: var(--text-faint);
+  }
+  .code-header .dots { display: flex; gap: 6px; }
+  .code-header .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-r { background: #ff5f57; } .dot-y { background: #febc2e; } .dot-g { background: #28c840; }
+  .copy-btn {
+    background: none; border: 1px solid var(--border); color: var(--text-faint);
+    font-family: var(--mono); font-size: 10px; padding: 3px 8px;
+    border-radius: 4px; cursor: pointer; transition: all .15s; letter-spacing: .06em;
+  }
+  .copy-btn:hover { border-color: var(--green); color: var(--green); }
+  .copy-btn.copied { border-color: var(--green); color: var(--green); }
+  .code-block pre {
+    padding: 20px; overflow-x: auto; font-family: var(--mono);
+    font-size: 13.5px; line-height: 1.8; color: var(--text);
+  }
+  .code-block pre::-webkit-scrollbar { height: 4px; }
+  .code-block pre::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .kw { color: var(--purple); }
+  .fn { color: var(--blue); }
+  .str { color: var(--yellow); }
+  .cmt { color: var(--text-faint); font-style: italic; }
+  .num { color: var(--orange); }
+  .cls { color: var(--green); }
+  .op  { color: var(--red); }
+  .out { color: var(--purple); }
+  .dec { color: var(--orange); }
+
+  /* ── INFO BOXES ── */
+  .info-box {
+    border-radius: 8px; padding: 16px 18px; margin: 16px 0;
+    display: flex; gap: 12px; align-items: flex-start; font-size: 14px; max-width: 760px;
+  }
+  .info-box .icon { font-size: 16px; flex-shrink: 0; margin-top: 2px; }
+  .info-box-content { color: var(--text-dim); line-height: 1.7; }
+  .info-box-content strong { color: var(--text); font-weight: 600; }
+  .tip { background: rgba(0,255,136,.06); border: 1px solid rgba(0,255,136,.2); }
+  .warning { background: rgba(255,214,10,.06); border: 1px solid rgba(255,214,10,.2); }
+  .note { background: rgba(88,166,255,.06); border: 1px solid rgba(88,166,255,.2); }
+  .danger { background: rgba(255,107,107,.06); border: 1px solid rgba(255,107,107,.2); }
+
+  /* ── TABLE ── */
+  .table-wrap { overflow-x: auto; margin: 16px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-family: var(--mono); }
+  th { background: var(--bg3); color: var(--green); font-weight: 600; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+  td { padding: 9px 14px; border-bottom: 1px solid var(--border); color: var(--text-dim); vertical-align: top; }
+  td:first-child { color: var(--green-dim); font-weight: 500; }
+  tr:hover td { background: var(--green-subtle); }
+
+  /* ── CARDS ── */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin: 16px 0; }
+  .card { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 16px; transition: border-color .2s; }
+  .card:hover { border-color: var(--green); }
+  .card .card-icon { font-size: 20px; margin-bottom: 8px; }
+  .card .card-title { font-weight: 600; font-size: 14px; color: var(--text); margin-bottom: 4px; }
+  .card .card-desc { font-size: 12.5px; color: var(--text-dim); line-height: 1.6; }
+
+  /* ── STYLED LIST ── */
+  .styled-list { list-style: none; padding: 0; margin: 12px 0; max-width: 760px; }
+  .styled-list li { padding: 7px 0 7px 22px; color: var(--text-dim); font-size: 14px; border-bottom: 1px solid var(--border); position: relative; }
+  .styled-list li:last-child { border-bottom: none; }
+  .styled-list li::before { content: '▸'; position: absolute; left: 0; color: var(--green); font-size: 11px; top: 9px; }
+  .styled-list li strong { color: var(--text); }
+
+  /* ── FLOW ── */
+  .flow { display: flex; align-items: center; gap: 0; margin: 20px 0; flex-wrap: wrap; max-width: 760px; }
+  .flow-step { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; text-align: center; min-width: 110px; }
+  .flow-step .step-label { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 4px; color: var(--text-faint); }
+  .flow-step .step-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .flow-step.active { border-color: var(--green); background: var(--green-subtle); }
+  .flow-step.active .step-label { color: var(--green); }
+  .flow-step.active .step-name { color: var(--green); }
+  .flow-arrow { font-family: var(--mono); color: var(--text-faint); font-size: 18px; padding: 0 8px; flex-shrink: 0; }
+
+  code { font-family: var(--mono); font-size: 12.5px; background: var(--bg3); border: 1px solid var(--border); color: var(--green-dim); padding: 1px 6px; border-radius: 4px; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+  /* ── BACK TOP ── */
+  #back-top { position: fixed; bottom: 28px; right: 28px; background: var(--bg2); border: 1px solid var(--border); color: var(--green); font-family: var(--mono); font-size: 12px; padding: 8px 14px; border-radius: 6px; cursor: pointer; opacity: 0; transition: opacity .3s, border-color .2s; z-index: 50; }
+  #back-top.visible { opacity: 1; }
+  #back-top:hover { border-color: var(--green); background: var(--green-subtle); }
+
+  /* ── HAMBURGER ── */
+  #menu-toggle { display: none; position: fixed; top: 10px; right: 12px; z-index: 300; background: var(--bg2); border: 1px solid var(--border); color: var(--green); font-size: 18px; width: 34px; height: 34px; border-radius: 6px; cursor: pointer; align-items: center; justify-content: center; }
+  #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 90; margin-top: var(--topnav-h); }
+
+  @media (max-width: 900px) {
+    #sidebar { position: fixed; top: var(--topnav-h); bottom: 0; left: 0; z-index: 100; transform: translateX(-100%); }
+    #sidebar.open { transform: translateX(0); }
+    #menu-toggle { display: flex; }
+    #overlay.show { display: block; }
+    #main { padding: 24px 20px 60px; }
+    .page-tab span.tab-label { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP PAGE NAV -->
+<nav id="topnav">
+  <div class="nav-logo">Shell Notes</div>
+  <div class="page-tabs">
+    <div class="page-tab active" onclick="switchPage('p1',this)">
+      <span class="tab-icon">🐚</span><span class="tab-label">Basics</span><span class="tab-num">01</span>
+    </div>
+    <div class="page-tab" onclick="switchPage('p2',this)">
+      <span class="tab-icon">🔀</span><span class="tab-label">Control Flow</span><span class="tab-num">02</span>
+    </div>
+    <div class="page-tab" onclick="switchPage('p3',this)">
+      <span class="tab-icon">📁</span><span class="tab-label">Files & Text</span><span class="tab-num">03</span>
+    </div>
+    <div class="page-tab" onclick="switchPage('p4',this)">
+      <span class="tab-icon">🧾</span><span class="tab-label">Cheatsheet</span><span class="tab-num">04</span>
+    </div>
+  </div>
+</nav>
+
+<button id="menu-toggle" onclick="toggleSidebar()">☰</button>
+<div id="overlay" onclick="closeSidebar()"></div>
+
+<div id="layout">
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-page-title" id="sidebar-title">🐚 Basics</div>
+      <div class="sidebar-search">
+        <input type="text" id="toc-search" placeholder="Filter sections…" oninput="filterTOC(this.value)">
+      </div>
+    </div>
+    <div id="toc-content"></div>
+  </aside>
+
+  <!-- MAIN -->
+  <main id="main">
+
+  <!-- ══════════════════ PAGE 1 — BASICS ══════════════════ -->
+  <div class="page active" id="p1">
+    <div class="hero">
+      <div class="hero-eyebrow">Page 01 / Getting Started</div>
+      <h1>Shell <span>Basics</span></h1>
+      <p class="hero-desc">A shell script is just a text file full of the same commands you'd type into a terminal, saved so you can run them all at once. This page covers the shebang, running scripts, variables, and getting input/output.</p>
+      <div class="hero-badges">
+        <span class="badge badge-green">bash</span>
+        <span class="badge badge-blue">Variables</span>
+        <span class="badge badge-yellow">stdin/stdout</span>
+        <span class="badge badge-purple">Arguments</span>
+      </div>
+    </div>
+
+    <div class="section" id="s1-intro">
+      <div class="section-header"><span class="section-num">01</span><h2>What Is a Shell Script?</h2></div>
+      <p>A shell script automates a sequence of terminal commands. Instead of typing commands one by one, you write them in a file and run the file. Most scripts on Linux/macOS use <strong style="color:var(--text)">bash</strong>.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>hello.sh</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="cmt">#!/bin/bash</span>
+<span class="cmt"># This is a comment</span>
+<span class="fn">echo</span> <span class="str">"Hello, World!"</span></pre>
+      </div>
+      <p>The first line <code>#!/bin/bash</code> is called the <strong style="color:var(--text)">shebang</strong> — it tells the system which program should run the file.</p>
+    </div>
+
+    <div class="section" id="s1-run">
+      <div class="section-header"><span class="section-num">02</span><h2>Running a Script</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>terminal</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="fn">chmod</span> +x hello.sh     <span class="cmt"># make it executable, do this once</span>
+./hello.sh              <span class="cmt"># run it</span>
+
+<span class="cmt"># or, without making it executable:</span>
+<span class="fn">bash</span> hello.sh</pre>
+      </div>
+      <div class="info-box tip">
+        <span class="icon">💡</span>
+        <div class="info-box-content"><code>chmod +x</code> gives the file "execute" permission. Without it, <code>./hello.sh</code> will say "permission denied".</div>
+      </div>
+    </div>
+
+    <div class="section" id="s1-variables">
+      <div class="section-header"><span class="section-num">03</span><h2>Variables</h2></div>
+      <p>No spaces around <code>=</code>. To read a variable's value, put a <code>$</code> in front of its name.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>variables.sh</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre>name<span class="op">=</span><span class="str">"Alex"</span>
+age<span class="op">=</span><span class="num">25</span>
+
+<span class="fn">echo</span> <span class="str">"My name is $name"</span>
+<span class="fn">echo</span> <span class="str">"My name is ${name}"</span>   <span class="cmt"># same thing, braces are safer</span>
+
+<span class="cmt"># command output stored in a variable</span>
+today<span class="op">=</span><span class="op">$(</span><span class="fn">date</span> +%Y-%m-%d<span class="op">)</span>
+<span class="fn">echo</span> <span class="str">"Today is $today"</span></pre>
+      </div>
+      <div class="info-box warning">
+        <span class="icon">⚠️</span>
+        <div class="info-box-content"><code>name = "Alex"</code> (with spaces) will <strong>not</strong> work — bash reads it as running a command called <code>name</code> with arguments.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s1-io">
+      <div class="section-header"><span class="section-num">04</span><h2>Output & Input</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>greet.sh</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="fn">echo</span> <span class="str">"What is your name?"</span>
+<span class="fn">read</span> name
+<span class="fn">echo</span> <span class="str">"Nice to meet you, $name!"</span>
+
+<span class="cmt"># read with a prompt on one line</span>
+<span class="fn">read</span> -p <span class="str">"Enter your age: "</span> age
+<span class="fn">echo</span> <span class="str">"You are $age years old"</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="s1-args">
+      <div class="section-header"><span class="section-num">05</span><h2>Command-Line Arguments</h2></div>
+      <p>Values passed when running the script — e.g. <code>./deploy.sh prod v2</code>.</p>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Symbol</th><th>Meaning</th></tr>
+          <tr><td>$0</td><td>The script's own name</td></tr>
+          <tr><td>$1, $2, …</td><td>First, second, … argument</td></tr>
+          <tr><td>$#</td><td>Number of arguments passed</td></tr>
+          <tr><td>$@</td><td>All arguments, as separate words</td></tr>
+          <tr><td>$?</td><td>Exit code of the last command run</td></tr>
+        </table>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>deploy.sh</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="fn">echo</span> <span class="str">"Script name: $0"</span>
+<span class="fn">echo</span> <span class="str">"Environment: $1"</span>
+<span class="fn">echo</span> <span class="str">"Version: $2"</span>
+<span class="fn">echo</span> <span class="str">"Total args: $#"</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="s1-quoting">
+      <div class="section-header"><span class="section-num">06</span><h2>Quoting Basics</h2></div>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Quote</th><th>Behavior</th></tr>
+          <tr><td>"double"</td><td>Variables and $(...) are expanded inside</td></tr>
+          <tr><td>'single'</td><td>Everything is literal — nothing is expanded</td></tr>
+          <tr><td>no quotes</td><td>Word splitting happens — risky with spaces in values</td></tr>
+        </table>
+      </div>
+      <div class="info-box tip">
+        <span class="icon">💡</span>
+        <div class="info-box-content">A good habit: always wrap variables in double quotes, like <code>"$name"</code>, to avoid surprises if the value contains spaces.</div>
+      </div>
+    </div>
+  </div><!-- /page 1 -->
+
+  <!-- ══════════════════ PAGE 2 — CONTROL FLOW ══════════════════ -->
+  <div class="page" id="p2">
+    <div class="hero">
+      <div class="hero-eyebrow">Page 02 / Logic</div>
+      <h1>Control <span>Flow</span></h1>
+      <p class="hero-desc">Making decisions and repeating work — if/else, case, the three loop types, and reusable functions.</p>
+      <div class="hero-badges">
+        <span class="badge badge-green">if / else</span>
+        <span class="badge badge-blue">for / while</span>
+        <span class="badge badge-yellow">case</span>
+        <span class="badge badge-purple">functions</span>
+      </div>
+    </div>
+
+    <div class="section" id="s2-if">
+      <div class="section-header"><span class="section-num">01</span><h2>if / elif / else</h2></div>
+      <p>Square brackets <code>[ ]</code> are the <code>test</code> command. Always leave a space right after <code>[</code> and before <code>]</code>.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>check_age.sh</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="kw">if</span> [ <span class="op">$</span>age -ge <span class="num">18</span> ]; <span class="kw">then</span>
+  <span class="fn">echo</span> <span class="str">"You are an adult"</span>
+<span class="kw">elif</span> [ <span class="op">$</span>age -ge <span class="num">13</span> ]; <span class="kw">then</span>
+  <span class="fn">echo</span> <span class="str">"You are a teenager"</span>
+<span class="kw">else</span>
+  <span class="fn">echo</span> <span class="str">"You are a child"</span>
+<span class="kw">fi</span></pre>
+      </div>
+      <h3>Comparison operators</h3>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Numbers</th><th>Strings</th><th>Meaning</th></tr>
+          <tr><td>-eq</td><td>=</td><td>equal</td></tr>
+          <tr><td>-ne</td><td>!=</td><td>not equal</td></tr>
+          <tr><td>-gt</td><td>—</td><td>greater than</td></tr>
+          <tr><td>-lt</td><td>—</td><td>less than</td></tr>
+          <tr><td>-ge / -le</td><td>—</td><td>greater/less than or equal</td></tr>
+          <tr><td>—</td><td>-z</td><td>string is empty</td></tr>
+          <tr><td>—</td><td>-n</td><td>string is not empty</td></tr>
+        </table>
+      </div>
+      <div class="info-box note">
+        <span class="icon">📘</span>
+        <div class="info-box-content">Combine conditions with <code>&&</code> (and) or <code>||</code> (or): <code>if [ "$a" = "x" ] && [ "$b" = "y" ]; then</code></div>
+      </div>
+    </div>
+
+    <div class="section" id="s2-case">
+      <div class="section-header"><span class="section-num">02</span><h2>case</h2></div>
+      <p>A cleaner way to check one variable against many possible values.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>case.sh</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="fn">read</span> -p <span class="str">"Enter a fruit: "</span> fruit
+
+<span class="kw">case</span> <span class="op">$</span>fruit <span class="kw">in</span>
+  apple)
+    <span class="fn">echo</span> <span class="str">"That's a red fruit"</span> ;;
+  banana)
+    <span class="fn">echo</span> <span class="str">"That's a yellow fruit"</span> ;;
+  grape|orange)
+    <span class="fn">echo</span> <span class="str">"That's a common fruit"</span> ;;
+  *)
+    <span class="fn">echo</span> <span class="str">"Unknown fruit"</span> ;;
+<span class="kw">esac</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="s2-loops">
+      <div class="section-header"><span class="section-num">03</span><h2>Loops</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>for loop</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="kw">for</span> i <span class="kw">in</span> <span class="num">1</span> <span class="num">2</span> <span class="num">3</span>; <span class="kw">do</span>
+  <span class="fn">echo</span> <span class="str">"Number: $i"</span>
+<span class="kw">done</span>
+
+<span class="cmt"># loop over a range</span>
+<span class="kw">for</span> i <span class="kw">in</span> {<span class="num">1</span>..<span class="num">5</span>}; <span class="kw">do</span> <span class="fn">echo</span> <span class="op">$</span>i; <span class="kw">done</span>
+
+<span class="cmt"># loop over files</span>
+<span class="kw">for</span> file <span class="kw">in</span> *.txt; <span class="kw">do</span>
+  <span class="fn">echo</span> <span class="str">"Found: $file"</span>
+<span class="kw">done</span></pre>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>while / until loop</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre>count<span class="op">=</span><span class="num">1</span>
+<span class="kw">while</span> [ <span class="op">$</span>count -le <span class="num">5</span> ]; <span class="kw">do</span>
+  <span class="fn">echo</span> <span class="str">"Count: $count"</span>
+  count<span class="op">=</span><span class="op">$((</span>count + <span class="num">1</span><span class="op">))</span>
+<span class="kw">done</span>
+
+<span class="cmt"># until runs while the condition is FALSE</span>
+<span class="kw">until</span> [ <span class="op">$</span>count -gt <span class="num">10</span> ]; <span class="kw">do</span>
+  <span class="fn">echo</span> <span class="op">$</span>count
+  count<span class="op">=</span><span class="op">$((</span>count + <span class="num">1</span><span class="op">))</span>
+<span class="kw">done</span></pre>
+      </div>
+      <div class="info-box tip">
+        <span class="icon">💡</span>
+        <div class="info-box-content"><code>break</code> exits a loop early; <code>continue</code> skips to the next iteration — same as most other languages.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s2-functions">
+      <div class="section-header"><span class="section-num">04</span><h2>Functions</h2></div>
+      <p>Functions group reusable code. Arguments are read with <code>$1</code>, <code>$2</code>, etc, just like script arguments.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>functions.sh</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="fn">greet</span>() {
+  <span class="kw">local</span> name<span class="op">=</span><span class="op">$1</span>
+  <span class="fn">echo</span> <span class="str">"Hello, $name!"</span>
+}
+
+<span class="fn">add</span>() {
+  <span class="kw">local</span> sum<span class="op">=</span><span class="op">$((</span><span class="op">$1</span> + <span class="op">$2</span><span class="op">))</span>
+  <span class="fn">echo</span> <span class="op">$</span>sum   <span class="cmt"># "return" a value by printing it</span>
+}
+
+<span class="fn">greet</span> <span class="str">"Sam"</span>
+result<span class="op">=</span><span class="op">$(</span><span class="fn">add</span> <span class="num">3</span> <span class="num">4</span><span class="op">)</span>
+<span class="fn">echo</span> <span class="str">"Sum is $result"</span></pre>
+      </div>
+      <div class="info-box note">
+        <span class="icon">📘</span>
+        <div class="info-box-content"><code>local</code> keeps a variable scoped to the function, so it doesn't overwrite a same-named variable outside it.</div>
+      </div>
+    </div>
+  </div><!-- /page 2 -->
+
+  <!-- ══════════════════ PAGE 3 — FILES & TEXT ══════════════════ -->
+  <div class="page" id="p3">
+    <div class="hero">
+      <div class="hero-eyebrow">Page 03 / Working With Data</div>
+      <h1>Files <span>& Text</span></h1>
+      <p class="hero-desc">Checking files, redirecting output, chaining commands with pipes, arrays, and the everyday text tools grep, sed, and awk.</p>
+      <div class="hero-badges">
+        <span class="badge badge-green">Redirection</span>
+        <span class="badge badge-blue">Pipes</span>
+        <span class="badge badge-yellow">Arrays</span>
+        <span class="badge badge-purple">grep / sed / awk</span>
+      </div>
+    </div>
+
+    <div class="section" id="s3-filetest">
+      <div class="section-header"><span class="section-num">01</span><h2>File Test Operators</h2></div>
+      <p>Used inside <code>[ ]</code> to check things about a file before acting on it.</p>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Operator</th><th>Checks</th></tr>
+          <tr><td>-e</td><td>File or directory exists</td></tr>
+          <tr><td>-f</td><td>Exists and is a regular file</td></tr>
+          <tr><td>-d</td><td>Exists and is a directory</td></tr>
+          <tr><td>-r / -w / -x</td><td>Readable / writable / executable</td></tr>
+          <tr><td>-s</td><td>File exists and is not empty</td></tr>
+        </table>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>check_file.sh</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="kw">if</span> [ -f <span class="str">"config.txt"</span> ]; <span class="kw">then</span>
+  <span class="fn">echo</span> <span class="str">"Config file found"</span>
+<span class="kw">else</span>
+  <span class="fn">echo</span> <span class="str">"Missing config.txt"</span>
+<span class="kw">fi</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="s3-redirect">
+      <div class="section-header"><span class="section-num">02</span><h2>Redirection & Pipes</h2></div>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Symbol</th><th>Meaning</th></tr>
+          <tr><td>&gt;</td><td>Send output to a file, overwriting it</td></tr>
+          <tr><td>&gt;&gt;</td><td>Send output to a file, appending to it</td></tr>
+          <tr><td>&lt;</td><td>Read input from a file</td></tr>
+          <tr><td>2&gt;</td><td>Send only error output to a file</td></tr>
+          <tr><td>|</td><td>Pipe — send one command's output into the next command's input</td></tr>
+        </table>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>examples</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="fn">echo</span> <span class="str">"log entry"</span> >> app.log     <span class="cmt"># append to a log file</span>
+<span class="fn">ls</span> -l > files.txt             <span class="cmt"># save listing to a file</span>
+<span class="fn">command</span> 2> errors.txt        <span class="cmt"># save only errors</span>
+<span class="fn">ps</span> aux | <span class="fn">grep</span> <span class="str">"nginx"</span>       <span class="cmt"># pipe: filter process list</span>
+<span class="fn">cat</span> file.txt | <span class="fn">wc</span> -l          <span class="cmt"># pipe: count lines</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="s3-arrays">
+      <div class="section-header"><span class="section-num">03</span><h2>Arrays</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>arrays.sh</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre>fruits<span class="op">=</span>(<span class="str">"apple"</span> <span class="str">"banana"</span> <span class="str">"grape"</span>)
+
+<span class="fn">echo</span> <span class="op">${</span>fruits[0]<span class="op">}</span>        <span class="cmt"># first item: apple</span>
+<span class="fn">echo</span> <span class="op">${</span>fruits[@]<span class="op">}</span>        <span class="cmt"># all items</span>
+<span class="fn">echo</span> <span class="op">${#</span>fruits[@]<span class="op">}</span>       <span class="cmt"># number of items</span>
+
+<span class="kw">for</span> fruit <span class="kw">in</span> <span class="str">"${fruits[@]}"</span>; <span class="kw">do</span>
+  <span class="fn">echo</span> <span class="str">"I like $fruit"</span>
+<span class="kw">done</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="s3-grep">
+      <div class="section-header"><span class="section-num">04</span><h2>grep — Search Text</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>grep examples</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="fn">grep</span> <span class="str">"error"</span> app.log         <span class="cmt"># lines containing "error"</span>
+<span class="fn">grep</span> -i <span class="str">"error"</span> app.log      <span class="cmt"># case-insensitive</span>
+<span class="fn">grep</span> -v <span class="str">"debug"</span> app.log      <span class="cmt"># lines NOT containing "debug"</span>
+<span class="fn">grep</span> -r <span class="str">"TODO"</span> ./src         <span class="cmt"># search recursively in a folder</span>
+<span class="fn">grep</span> -c <span class="str">"error"</span> app.log      <span class="cmt"># just count matching lines</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="s3-sed">
+      <div class="section-header"><span class="section-num">05</span><h2>sed — Find & Replace</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>sed examples</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="fn">sed</span> <span class="str">'s/old/new/'</span> file.txt      <span class="cmt"># replace first match per line, prints result</span>
+<span class="fn">sed</span> <span class="str">'s/old/new/g'</span> file.txt     <span class="cmt"># replace ALL matches per line</span>
+<span class="fn">sed</span> -i <span class="str">'s/old/new/g'</span> file.txt  <span class="cmt"># edit the file in place</span>
+<span class="fn">sed</span> -n <span class="str">'2,4p'</span> file.txt        <span class="cmt"># print only lines 2 to 4</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="s3-awk">
+      <div class="section-header"><span class="section-num">06</span><h2>awk — Columns & Reports</h2></div>
+      <p>Great for column-based data — awk splits each line into fields (<code>$1</code>, <code>$2</code>, …) by whitespace by default.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>awk examples</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="fn">awk</span> <span class="str">'{print $1}'</span> file.txt        <span class="cmt"># print the first column of each line</span>
+<span class="fn">awk</span> -F<span class="str">","</span> <span class="str">'{print $2}'</span> data.csv   <span class="cmt"># use comma as the separator</span>
+<span class="fn">awk</span> <span class="str">'{sum += $3} END {print sum}'</span> data.txt  <span class="cmt"># total up column 3</span></pre>
+      </div>
+      <div class="info-box tip">
+        <span class="icon">💡</span>
+        <div class="info-box-content">Rule of thumb: <strong>grep</strong> to find lines, <strong>sed</strong> to change text, <strong>awk</strong> to work with columns.</div>
+      </div>
+    </div>
+  </div><!-- /page 3 -->
+
+  <!-- ══════════════════ PAGE 4 — CHEATSHEET ══════════════════ -->
+  <div class="page" id="p4">
+    <div class="hero">
+      <div class="hero-eyebrow">Page 04 / Quick Reference</div>
+      <h1>Practical <span>& Cheatsheet</span></h1>
+      <p class="hero-desc">Exit codes, string tricks, debugging a broken script, scheduling with cron, and a fast lookup table of everything above.</p>
+      <div class="hero-badges">
+        <span class="badge badge-green">Exit Codes</span>
+        <span class="badge badge-blue">Debugging</span>
+        <span class="badge badge-yellow">cron</span>
+        <span class="badge badge-purple">Cheatsheet</span>
+      </div>
+    </div>
+
+    <div class="section" id="s4-exit">
+      <div class="section-header"><span class="section-num">01</span><h2>Exit Codes</h2></div>
+      <p>Every command returns a number when it finishes: <code>0</code> means success, anything else means some kind of failure. Stored in <code>$?</code>.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>exit_codes.sh</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="fn">mkdir</span> /tmp/testdir
+<span class="kw">if</span> [ <span class="op">$?</span> -eq <span class="num">0</span> ]; <span class="kw">then</span>
+  <span class="fn">echo</span> <span class="str">"Folder created successfully"</span>
+<span class="kw">else</span>
+  <span class="fn">echo</span> <span class="str">"Something went wrong"</span>
+<span class="kw">fi</span>
+
+<span class="cmt"># exit your own script with a custom code</span>
+<span class="kw">exit</span> <span class="num">1</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="s4-strings">
+      <div class="section-header"><span class="section-num">02</span><h2>String Tricks</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>strings.sh</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre>text<span class="op">=</span><span class="str">"Hello World"</span>
+
+<span class="fn">echo</span> <span class="op">${#</span>text<span class="op">}</span>              <span class="cmt"># length: 11</span>
+<span class="fn">echo</span> <span class="op">${</span>text:0:5<span class="op">}</span>          <span class="cmt"># substring: Hello</span>
+<span class="fn">echo</span> <span class="op">${</span>text/World/Bash<span class="op">}</span>   <span class="cmt"># replace: Hello Bash</span>
+<span class="fn">echo</span> <span class="op">${</span>text^^<span class="op">}</span>             <span class="cmt"># uppercase: HELLO WORLD</span>
+<span class="fn">echo</span> <span class="op">${</span>text,,<span class="op">}</span>             <span class="cmt"># lowercase: hello world</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="s4-debug">
+      <div class="section-header"><span class="section-num">03</span><h2>Debugging a Script</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>terminal</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="fn">bash</span> -x script.sh      <span class="cmt"># print every command as it runs</span>
+<span class="fn">bash</span> -n script.sh      <span class="cmt"># check for syntax errors without running it</span></pre>
+      </div>
+      <p>You can also add <code>set -x</code> near the top of a script to turn on this tracing just for that script, and <code>set -e</code> to make it stop immediately if any command fails.</p>
+      <div class="info-box warning">
+        <span class="icon">⚠️</span>
+        <div class="info-box-content">Adding <code>set -euo pipefail</code> at the top of a script is a common safety habit: stop on error, stop on unset variables, and catch failures inside pipes.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s4-cron">
+      <div class="section-header"><span class="section-num">04</span><h2>Scheduling With cron</h2></div>
+      <p>cron runs a script automatically on a schedule. Edit your schedule with <code>crontab -e</code>.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>crontab syntax</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="cmt"># minute hour day month weekday   command</span>
+0 9 * * *   /home/user/backup.sh        <span class="cmt"># every day at 9:00 AM</span>
+*/15 * * * * /home/user/check.sh        <span class="cmt"># every 15 minutes</span>
+0 0 * * 0    /home/user/weekly.sh        <span class="cmt"># every Sunday at midnight</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="s4-cheat">
+      <div class="section-header"><span class="section-num">05</span><h2>Command Cheatsheet</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>everyday commands</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="fn">pwd</span>                    <span class="cmt"># print current directory</span>
+<span class="fn">ls</span> -la                 <span class="cmt"># list files, including hidden ones</span>
+<span class="fn">cd</span> path/                <span class="cmt"># change directory</span>
+<span class="fn">mkdir</span> -p a/b/c          <span class="cmt"># make nested folders</span>
+<span class="fn">cp</span> src dest             <span class="cmt"># copy a file</span>
+<span class="fn">mv</span> old new              <span class="cmt"># move / rename</span>
+<span class="fn">rm</span> -rf folder/          <span class="cmt"># delete a folder, force, no prompt</span>
+<span class="fn">cat</span> file.txt             <span class="cmt"># print a whole file</span>
+<span class="fn">head</span> -n 10 file.txt     <span class="cmt"># first 10 lines</span>
+<span class="fn">tail</span> -f app.log         <span class="cmt"># follow a growing log file live</span>
+<span class="fn">find</span> . -name <span class="str">"*.log"</span>  <span class="cmt"># find files by name</span>
+<span class="fn">which</span> bash              <span class="cmt"># show path to a command</span>
+<span class="fn">alias</span> ll<span class="op">=</span><span class="str">'ls -la'</span>       <span class="cmt"># create a shortcut command</span></pre>
+      </div>
+      <div class="divider"></div>
+      <div class="info-box note">
+        <span class="icon">📘</span>
+        <div class="info-box-content">Bookmark this page — use the sidebar search on each tab to jump straight to a section, and the <strong>COPY</strong> button on any code block to grab the snippet.</div>
+      </div>
+    </div>
+  </div><!-- /page 4 -->
+
+  </main>
+</div><!-- /layout -->
+
+<button id="back-top" onclick="scrollToTop()">↑ TOP</button>
+
+<!-- ── TOC DATA ── -->
+<script>
+const tocData = {
+  p1: {
+    title: "🐚 Basics",
+    sections: [
+      { label: "Basics", links: [
+        { href: "s1-intro", icon: "📖", text: "What Is a Shell Script?" },
+        { href: "s1-run", icon: "▶️", text: "Running a Script" },
+        { href: "s1-variables", icon: "🔤", text: "Variables" },
+        { href: "s1-io", icon: "⌨️", text: "Output & Input" },
+        { href: "s1-args", icon: "🧾", text: "Command-Line Arguments" },
+        { href: "s1-quoting", icon: "💬", text: "Quoting Basics" },
+      ]}
+    ]
+  },
+  p2: {
+    title: "🔀 Control Flow",
+    sections: [
+      { label: "Control Flow", links: [
+        { href: "s2-if", icon: "🔀", text: "if / elif / else" },
+        { href: "s2-case", icon: "🔢", text: "case" },
+        { href: "s2-loops", icon: "🔁", text: "Loops" },
+        { href: "s2-functions", icon: "🧩", text: "Functions" },
+      ]}
+    ]
+  },
+  p3: {
+    title: "📁 Files & Text",
+    sections: [
+      { label: "Files & Text", links: [
+        { href: "s3-filetest", icon: "📁", text: "File Test Operators" },
+        { href: "s3-redirect", icon: "↪️", text: "Redirection & Pipes" },
+        { href: "s3-arrays", icon: "🗂️", text: "Arrays" },
+        { href: "s3-grep", icon: "🔍", text: "grep — Search Text" },
+        { href: "s3-sed", icon: "✏️", text: "sed — Find & Replace" },
+        { href: "s3-awk", icon: "📊", text: "awk — Columns & Reports" },
+      ]}
+    ]
+  },
+  p4: {
+    title: "🧾 Cheatsheet",
+    sections: [
+      { label: "Reference", links: [
+        { href: "s4-exit", icon: "🚦", text: "Exit Codes" },
+        { href: "s4-strings", icon: "🔤", text: "String Tricks" },
+        { href: "s4-debug", icon: "🐞", text: "Debugging a Script" },
+        { href: "s4-cron", icon: "⏰", text: "Scheduling With cron" },
+        { href: "s4-cheat", icon: "🧾", text: "Command Cheatsheet" },
+      ]}
+    ]
+  }
+};
+
+let currentPage = 'p1';
+
+function buildTOC(pageId) {
+  const data = tocData[pageId];
+  const container = document.getElementById('toc-content');
+  document.getElementById('sidebar-title').textContent = data.title;
+  let html = '';
+  data.sections.forEach(sec => {
+    html += `<div class="toc-section">`;
+    if (sec.label) html += `<div class="toc-section-label">${sec.label}</div>`;
+    sec.links.forEach(l => {
+      html += `<a class="toc-link" onclick="scrollToSection('${l.href}')">
+        <span class="toc-icon">${l.icon}</span>${l.text}
+      </a>`;
+    });
+    html += `</div>`;
+  });
+  container.innerHTML = html;
+}
+
+function switchPage(pageId, tab) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+  tab.classList.add('active');
+  currentPage = pageId;
+  document.getElementById('main').scrollTop = 0;
+  buildTOC(pageId);
+  document.getElementById('toc-search').value = '';
+  closeSidebar();
+}
+
+function scrollToSection(id) {
+  const el = document.getElementById(id);
+  if (el) {
+    document.getElementById('main').scrollTo({ top: el.offsetTop - 20, behavior: 'smooth' });
+    document.querySelectorAll('.toc-link').forEach(l => l.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+  }
+  closeSidebar();
+}
+
+function scrollToTop() {
+  document.getElementById('main').scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.getElementById('main').addEventListener('scroll', function() {
+  const btn = document.getElementById('back-top');
+  btn.classList.toggle('visible', this.scrollTop > 400);
+});
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+function filterTOC(q) {
+  q = q.toLowerCase();
+  document.querySelectorAll('.toc-link').forEach(link => {
+    link.style.display = link.textContent.toLowerCase().includes(q) ? 'flex' : 'none';
+  });
+  document.querySelectorAll('.toc-section-label').forEach(label => {
+    const visible = [...label.parentElement.querySelectorAll('.toc-link')].some(l => l.style.display !== 'none');
+    label.style.display = visible ? '' : 'none';
+  });
+}
+
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  navigator.clipboard.writeText(pre.innerText).then(() => {
+    btn.textContent = 'COPIED!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+buildTOC('p1');
+</script>
+
+<!-- ══════════ Learning Hub integration (injected) ══════════ -->
+<style>
+  #hub-back-btn {
+    position: fixed; top: 10px; right: 16px; z-index: 999;
+    display: flex; align-items: center; gap: 6px;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 12px; font-weight: 600; letter-spacing: .03em;
+    color: #0a0a0a; background: #00ff88;
+    padding: 7px 13px; border-radius: 20px; text-decoration: none;
+    box-shadow: 0 2px 14px rgba(0,255,136,.35);
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  #hub-back-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 18px rgba(0,255,136,.5); }
+  .search-highlight-pulse {
+    animation: hubPulse 1.4s ease-out 2;
+    border-radius: 10px;
+  }
+  @keyframes hubPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(0,255,136,.55); }
+    70%  { box-shadow: 0 0 0 14px rgba(0,255,136,0); }
+    100% { box-shadow: 0 0 0 0 rgba(0,255,136,0); }
+  }
+  @media (max-width: 640px) { #hub-back-btn span.lbl { display: none; } }
+</style>
+<a id="hub-back-btn" href="../index.html" title="Back to Learning Hub">&#8592; <span class="lbl">Hub</span></a>
+<script>
+(function () {
+  function getParam(name) {
+    return new URLSearchParams(window.location.search).get(name);
+  }
+  function go() {
+    var page = getParam('page');
+    var nb = getParam('nb');
+    var sec = getParam('sec');
+    try {
+      if (page && typeof switchPage === 'function') {
+        var tab = document.querySelector('.page-tab[onclick*="\'' + page + '\'"]');
+        if (tab) switchPage(page, tab);
+      }
+    } catch (e) { /* noop */ }
+    try {
+      if (nb && typeof openNotebook === 'function') {
+        var item = document.querySelector('.toc-item[onclick*="\'' + nb + '\'"]');
+        document.querySelectorAll('.notebook-page').forEach(function(p){ p.classList.remove('active'); });
+        var target = document.getElementById(nb);
+        if (target) target.classList.add('active');
+        document.querySelectorAll('.toc-item').forEach(function(el){ el.classList.remove('active'); });
+        if (item) item.classList.add('active');
+      }
+    } catch (e) { /* noop */ }
+    if (sec) {
+      setTimeout(function () {
+        var el = document.getElementById(sec);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          el.classList.add('search-highlight-pulse');
+          setTimeout(function () { el.classList.remove('search-highlight-pulse'); }, 3000);
+        }
+      }, 200);
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', go);
+  } else {
+    go();
+  }
+})();
+</script>
+
+</body>
+</html>

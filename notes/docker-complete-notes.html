@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Docker — Complete Notes</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg: #0a0a0a;
+    --bg2: #111111;
+    --bg3: #161616;
+    --border: #222222;
+    --green: #00ff88;
+    --green-dim: #00cc6a;
+    --green-glow: rgba(0,255,136,0.15);
+    --green-subtle: rgba(0,255,136,0.07);
+    --yellow: #ffd60a;
+    --blue: #58a6ff;
+    --red: #ff6b6b;
+    --purple: #c792ea;
+    --orange: #ffab40;
+    --text: #e0e0e0;
+    --text-dim: #888;
+    --text-faint: #444;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Inter', sans-serif;
+    --sidebar-w: 280px;
+    --topnav-h: 52px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; line-height: 1.7; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+  #topnav {
+    position: fixed; top: 0; left: 0; right: 0; height: var(--topnav-h);
+    background: var(--bg2); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; z-index: 200; overflow-x: auto;
+    scrollbar-width: none;
+  }
+  #topnav::-webkit-scrollbar { display: none; }
+
+  .nav-logo {
+    font-family: var(--mono); font-size: 13px; font-weight: 700;
+    color: var(--green); letter-spacing: .08em; text-transform: uppercase;
+    padding: 0 20px; white-space: nowrap; display: flex; align-items: center; gap: 8px;
+    border-right: 1px solid var(--border); flex-shrink: 0;
+  }
+  .nav-logo::before { content: '>'; animation: blink 1.1s step-end infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  .page-tabs { display: flex; align-items: stretch; height: var(--topnav-h); }
+
+  .page-tab {
+    display: flex; align-items: center; gap: 7px;
+    padding: 0 18px; font-family: var(--sans); font-size: 13px;
+    color: var(--text-dim); cursor: pointer; white-space: nowrap;
+    border-bottom: 2px solid transparent; border-right: 1px solid var(--border);
+    transition: all .18s; user-select: none; flex-shrink: 0;
+  }
+  .page-tab:hover { color: var(--text); background: var(--green-subtle); }
+  .page-tab.active { color: var(--green); border-bottom-color: var(--green); background: var(--green-subtle); }
+  .page-tab .tab-icon { font-size: 14px; }
+  .page-tab .tab-num {
+    font-family: var(--mono); font-size: 10px; color: var(--text-faint);
+    background: var(--bg3); border: 1px solid var(--border);
+    padding: 1px 5px; border-radius: 3px;
+  }
+  .page-tab.active .tab-num { color: var(--green); border-color: rgba(0,255,136,.3); }
+
+  #layout {
+    display: flex; margin-top: var(--topnav-h); height: calc(100vh - var(--topnav-h)); overflow: hidden;
+  }
+
+  #sidebar {
+    width: var(--sidebar-w); background: var(--bg2);
+    border-right: 1px solid var(--border); overflow-y: auto;
+    flex-shrink: 0; transition: transform .3s;
+  }
+  #sidebar::-webkit-scrollbar { width: 4px; }
+  #sidebar::-webkit-scrollbar-track { background: var(--bg2); }
+  #sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .sidebar-header {
+    padding: 20px 20px 16px; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--bg2); z-index: 1;
+  }
+  .sidebar-page-title {
+    font-family: var(--mono); font-size: 11px; font-weight: 700;
+    color: var(--green); letter-spacing: .1em; text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .sidebar-search { position: relative; }
+  .sidebar-search input {
+    width: 100%; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text); font-family: var(--mono);
+    font-size: 12px; padding: 7px 10px 7px 30px; outline: none; transition: border-color .2s;
+  }
+  .sidebar-search input:focus { border-color: var(--green); }
+  .sidebar-search input::placeholder { color: var(--text-faint); }
+  .sidebar-search::before {
+    content: '⌕'; position: absolute; left: 9px; top: 50%;
+    transform: translateY(-50%); color: var(--text-dim); font-size: 14px; pointer-events: none;
+  }
+
+  .toc-section { padding: 8px 0; }
+  .toc-section-label {
+    font-family: var(--mono); font-size: 10px; font-weight: 600;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--text-faint);
+    padding: 8px 20px 4px;
+  }
+  .toc-link {
+    display: flex; align-items: center; gap: 8px; padding: 6px 20px;
+    color: var(--text-dim); text-decoration: none; font-size: 13px;
+    font-family: var(--sans); border-left: 2px solid transparent;
+    transition: all .15s; cursor: pointer;
+  }
+  .toc-link:hover, .toc-link.active {
+    color: var(--green); border-left-color: var(--green); background: var(--green-subtle);
+  }
+  .toc-link .toc-icon { font-size: 11px; width: 16px; text-align: center; flex-shrink: 0; }
+
+  #main {
+    flex: 1; overflow-y: auto; padding: 0 48px 80px; min-width: 0;
+  }
+  #main::-webkit-scrollbar { width: 6px; }
+  #main::-webkit-scrollbar-track { background: var(--bg); }
+  #main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  .hero { padding: 64px 0 48px; border-bottom: 1px solid var(--border); margin-bottom: 56px; }
+  .hero-eyebrow {
+    font-family: var(--mono); font-size: 12px; color: var(--green);
+    letter-spacing: .15em; text-transform: uppercase; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .hero-eyebrow::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(to right, var(--green-dim), transparent); max-width: 200px;
+  }
+  .hero h1 {
+    font-family: var(--mono); font-size: clamp(32px, 4vw, 58px);
+    font-weight: 700; line-height: 1.1; letter-spacing: -.02em; color: #fff; margin-bottom: 18px;
+  }
+  .hero h1 span { color: var(--green); text-shadow: 0 0 40px var(--green-glow); }
+  .hero-desc { font-size: 15px; color: var(--text-dim); max-width: 640px; line-height: 1.8; margin-bottom: 28px; }
+  .hero-badges { display: flex; gap: 10px; flex-wrap: wrap; }
+  .badge { font-family: var(--mono); font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 4px; letter-spacing: .06em; }
+  .badge-green { background: var(--green-subtle); color: var(--green); border: 1px solid rgba(0,255,136,.25); }
+  .badge-blue { background: rgba(88,166,255,.08); color: var(--blue); border: 1px solid rgba(88,166,255,.2); }
+  .badge-yellow { background: rgba(255,214,10,.07); color: var(--yellow); border: 1px solid rgba(255,214,10,.2); }
+  .badge-purple { background: rgba(199,146,234,.08); color: var(--purple); border: 1px solid rgba(199,146,234,.2); }
+
+  .section { margin-bottom: 64px; scroll-margin-top: 20px; }
+  .section-header {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 28px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+  }
+  .section-num {
+    font-family: var(--mono); font-size: 11px; color: var(--green);
+    background: var(--green-subtle); border: 1px solid rgba(0,255,136,.2);
+    padding: 3px 8px; border-radius: 4px; font-weight: 700; letter-spacing: .08em; flex-shrink: 0;
+  }
+  .section h2 { font-family: var(--mono); font-size: 22px; font-weight: 700; color: #fff; letter-spacing: -.01em; }
+  .section h3 {
+    font-family: var(--sans); font-size: 16px; font-weight: 600; color: var(--text);
+    margin: 28px 0 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .section h3::before { content: '//'; font-family: var(--mono); color: var(--green-dim); font-size: 13px; font-weight: 400; }
+  .section p { color: var(--text-dim); margin-bottom: 14px; max-width: 760px; }
+
+  .code-block { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin: 16px 0; }
+  .code-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; background: var(--bg2); border-bottom: 1px solid var(--border);
+    font-family: var(--mono); font-size: 11px; color: var(--text-faint);
+  }
+  .code-header .dots { display: flex; gap: 6px; }
+  .code-header .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-r { background: #ff5f57; } .dot-y { background: #febc2e; } .dot-g { background: #28c840; }
+  .copy-btn {
+    background: none; border: 1px solid var(--border); color: var(--text-faint);
+    font-family: var(--mono); font-size: 10px; padding: 3px 8px;
+    border-radius: 4px; cursor: pointer; transition: all .15s; letter-spacing: .06em;
+  }
+  .copy-btn:hover { border-color: var(--green); color: var(--green); }
+  .copy-btn.copied { border-color: var(--green); color: var(--green); }
+  .code-block pre {
+    padding: 20px; overflow-x: auto; font-family: var(--mono);
+    font-size: 13.5px; line-height: 1.8; color: var(--text);
+  }
+  .code-block pre::-webkit-scrollbar { height: 4px; }
+  .code-block pre::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .kw { color: var(--purple); }
+  .fn { color: var(--blue); }
+  .str { color: var(--yellow); }
+  .cmt { color: var(--text-faint); font-style: italic; }
+  .num { color: var(--orange); }
+  .cls { color: var(--green); }
+  .op  { color: var(--red); }
+  .out { color: var(--purple); }
+  .dec { color: var(--orange); }
+
+  .info-box {
+    border-radius: 8px; padding: 16px 18px; margin: 16px 0;
+    display: flex; gap: 12px; align-items: flex-start; font-size: 14px; max-width: 760px;
+  }
+  .info-box .icon { font-size: 16px; flex-shrink: 0; margin-top: 2px; }
+  .info-box-content { color: var(--text-dim); line-height: 1.7; }
+  .info-box-content strong { color: var(--text); font-weight: 600; }
+  .tip { background: rgba(0,255,136,.06); border: 1px solid rgba(0,255,136,.2); }
+  .warning { background: rgba(255,214,10,.06); border: 1px solid rgba(255,214,10,.2); }
+  .note { background: rgba(88,166,255,.06); border: 1px solid rgba(88,166,255,.2); }
+  .danger { background: rgba(255,107,107,.06); border: 1px solid rgba(255,107,107,.2); }
+
+  .table-wrap { overflow-x: auto; margin: 16px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-family: var(--mono); }
+  th { background: var(--bg3); color: var(--green); font-weight: 600; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+  td { padding: 9px 14px; border-bottom: 1px solid var(--border); color: var(--text-dim); vertical-align: top; }
+  td:first-child { color: var(--green-dim); font-weight: 500; }
+  tr:hover td { background: var(--green-subtle); }
+
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin: 16px 0; }
+  .card { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 16px; transition: border-color .2s; }
+  .card:hover { border-color: var(--green); }
+  .card .card-icon { font-size: 20px; margin-bottom: 8px; }
+  .card .card-title { font-weight: 600; font-size: 14px; color: var(--text); margin-bottom: 4px; }
+  .card .card-desc { font-size: 12.5px; color: var(--text-dim); line-height: 1.6; }
+
+  .styled-list { list-style: none; padding: 0; margin: 12px 0; max-width: 760px; }
+  .styled-list li { padding: 7px 0 7px 22px; color: var(--text-dim); font-size: 14px; border-bottom: 1px solid var(--border); position: relative; }
+  .styled-list li:last-child { border-bottom: none; }
+  .styled-list li::before { content: '▸'; position: absolute; left: 0; color: var(--green); font-size: 11px; top: 9px; }
+  .styled-list li strong { color: var(--text); }
+
+  .flow { display: flex; align-items: center; gap: 0; margin: 20px 0; flex-wrap: wrap; max-width: 760px; }
+  .flow-step { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; text-align: center; min-width: 110px; }
+  .flow-step .step-label { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 4px; color: var(--text-faint); }
+  .flow-step .step-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .flow-step.active { border-color: var(--green); background: var(--green-subtle); }
+  .flow-step.active .step-label { color: var(--green); }
+  .flow-step.active .step-name { color: var(--green); }
+  .flow-arrow { font-family: var(--mono); color: var(--text-faint); font-size: 18px; padding: 0 8px; flex-shrink: 0; }
+
+  code { font-family: var(--mono); font-size: 12.5px; background: var(--bg3); border: 1px solid var(--border); color: var(--green-dim); padding: 1px 6px; border-radius: 4px; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+  .qa-group-label {
+    font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--green);
+    letter-spacing: .1em; text-transform: uppercase; margin: 32px 0 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .qa-group-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  details.qa {
+    background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+    margin: 10px 0; overflow: hidden; max-width: 760px;
+  }
+  details.qa[open] { border-color: rgba(0,255,136,.3); }
+  details.qa summary {
+    list-style: none; cursor: pointer; padding: 14px 18px;
+    font-family: var(--sans); font-size: 14px; font-weight: 600; color: var(--text);
+    display: flex; align-items: center; gap: 10px; user-select: none;
+  }
+  details.qa summary::-webkit-details-marker { display: none; }
+  details.qa summary::before {
+    content: 'Q'; font-family: var(--mono); font-size: 10px; font-weight: 700;
+    color: var(--green); background: var(--green-subtle); border: 1px solid rgba(0,255,136,.25);
+    border-radius: 4px; padding: 2px 6px; flex-shrink: 0;
+  }
+  details.qa summary .chev { margin-left: auto; color: var(--text-faint); font-family: var(--mono); font-size: 12px; transition: transform .2s; }
+  details.qa[open] summary .chev { transform: rotate(90deg); color: var(--green); }
+  .qa-answer { padding: 0 18px 16px 46px; color: var(--text-dim); font-size: 13.5px; line-height: 1.75; }
+  .qa-answer strong { color: var(--text); }
+  .qa-answer code { font-size: 12px; }
+
+  #back-top { position: fixed; bottom: 28px; right: 28px; background: var(--bg2); border: 1px solid var(--border); color: var(--green); font-family: var(--mono); font-size: 12px; padding: 8px 14px; border-radius: 6px; cursor: pointer; opacity: 0; transition: opacity .3s, border-color .2s; z-index: 50; }
+  #back-top.visible { opacity: 1; }
+  #back-top:hover { border-color: var(--green); background: var(--green-subtle); }
+
+  #menu-toggle { display: none; position: fixed; top: 10px; right: 12px; z-index: 300; background: var(--bg2); border: 1px solid var(--border); color: var(--green); font-size: 18px; width: 34px; height: 34px; border-radius: 6px; cursor: pointer; align-items: center; justify-content: center; }
+  #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 90; margin-top: var(--topnav-h); }
+
+  @media (max-width: 900px) {
+    #sidebar { position: fixed; top: var(--topnav-h); bottom: 0; left: 0; z-index: 100; transform: translateX(-100%); }
+    #sidebar.open { transform: translateX(0); }
+    #menu-toggle { display: flex; }
+    #overlay.show { display: block; }
+    #main { padding: 24px 20px 60px; }
+    .page-tab span.tab-label { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<nav id="topnav">
+  <div class="nav-logo">Docker Notes</div>
+  <div class="page-tabs">
+    <div class="page-tab active" onclick="switchPage('p1',this)">
+      <span class="tab-icon">🐳</span><span class="tab-label">Fundamentals</span><span class="tab-num">01</span>
+    </div>
+    <div class="page-tab" onclick="switchPage('p2',this)">
+      <span class="tab-icon">📦</span><span class="tab-label">Images & Dockerfile</span><span class="tab-num">02</span>
+    </div>
+    <div class="page-tab" onclick="switchPage('p3',this)">
+      <span class="tab-icon">🔌</span><span class="tab-label">Containers, Network & Storage</span><span class="tab-num">03</span>
+    </div>
+    <div class="page-tab" onclick="switchPage('p4',this)">
+      <span class="tab-icon">🧩</span><span class="tab-label">Compose & Orchestration</span><span class="tab-num">04</span>
+    </div>
+    <div class="page-tab" onclick="switchPage('p5',this)">
+      <span class="tab-icon">🛡️</span><span class="tab-label">Security & Trivy Scanning</span><span class="tab-num">05</span>
+    </div>
+    <div class="page-tab" onclick="switchPage('p6',this)">
+      <span class="tab-icon">🎯</span><span class="tab-label">Interview Prep</span><span class="tab-num">06</span>
+    </div>
+    <div class="page-tab" onclick="switchPage('p7',this)">
+      <span class="tab-icon">📋</span><span class="tab-label">Cheatsheet</span><span class="tab-num">07</span>
+    </div>
+  </div>
+</nav>
+
+<button id="menu-toggle" onclick="toggleSidebar()">☰</button>
+<div id="overlay" onclick="closeSidebar()"></div>
+
+<div id="layout">
+
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-page-title" id="sidebar-title">🐳 Fundamentals</div>
+      <div class="sidebar-search">
+        <input id="toc-search" type="text" placeholder="Filter sections..." oninput="filterTOC(this.value)">
+      </div>
+    </div>
+    <div id="toc-content"></div>
+  </aside>
+
+  <main id="main">
+
+  <!-- ══════════════════ PAGE 1 — FUNDAMENTALS ══════════════════ -->
+  <div class="page active" id="p1">
+    <div class="hero">
+      <div class="hero-eyebrow">Page 01 / Docker</div>
+      <h1>Docker <span>Fundamentals</span></h1>
+      <p class="hero-desc">Docker packages an application with everything it needs to run — code, runtime, libraries, system tools — into a portable, isolated unit called a container, so it behaves identically on any machine.</p>
+      <div class="hero-badges">
+        <span class="badge badge-green">Containers</span>
+        <span class="badge badge-blue">Images</span>
+        <span class="badge badge-yellow">Linux Namespaces</span>
+        <span class="badge badge-purple">cgroups</span>
+      </div>
+    </div>
+
+    <div class="section" id="s1-what">
+      <div class="section-header"><span class="section-num">01</span><h2>What Is Docker & Why Containers?</h2></div>
+      <p><strong style="color:var(--text)">Docker</strong> is a platform for building, shipping, and running applications inside lightweight, isolated units called <strong style="color:var(--text)">containers</strong>. Unlike a virtual machine, a container shares the host's OS kernel instead of virtualizing hardware — making it far faster to start and much lighter on resources.</p>
+      <table>
+        <tr><th>Aspect</th><th>Virtual Machine</th><th>Docker Container</th></tr>
+        <tr><td>Isolation unit</td><td>Full guest OS + kernel</td><td>Process, isolated via kernel namespaces</td></tr>
+        <tr><td>Boot time</td><td>Minutes</td><td>Milliseconds to seconds</td></tr>
+        <tr><td>Size</td><td>GBs (full OS)</td><td>MBs (app + minimal deps)</td></tr>
+        <tr><td>Density per host</td><td>Tens</td><td>Hundreds to thousands</td></tr>
+        <tr><td>Hypervisor needed</td><td>Yes (Type 1/2)</td><td>No — uses host kernel directly</td></tr>
+      </table>
+      <div class="info-box tip">
+        <span class="icon">💡</span>
+        <div class="info-box-content"><strong>"Build once, run anywhere"</strong> — a container that runs on a developer's laptop runs identically in CI, staging, and production because the image bundles the entire runtime environment.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s1-architecture">
+      <div class="section-header"><span class="section-num">02</span><h2>Docker Architecture</h2></div>
+      <p>Docker uses a client-server model. The <strong style="color:var(--text)">Docker CLI</strong> talks to the <strong style="color:var(--text)">Docker daemon (dockerd)</strong> over a REST API (usually via a Unix socket), which does the actual work of building, running, and managing containers.</p>
+      <div class="flow">
+        <div class="flow-step"><div class="step-label">Client</div><div class="step-name">docker CLI</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step active"><div class="step-label">Daemon</div><div class="step-name">dockerd</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><div class="step-label">Registry</div><div class="step-name">Docker Hub / ACR / ECR</div></div>
+      </div>
+      <table>
+        <tr><th>Component</th><th>Role</th></tr>
+        <tr><td>Docker CLI</td><td>Command-line tool sending instructions to the daemon</td></tr>
+        <tr><td>Docker daemon (dockerd)</td><td>Background service managing images, containers, networks, volumes</td></tr>
+        <tr><td>containerd</td><td>High-level container runtime managing container lifecycle, image transfer/storage</td></tr>
+        <tr><td>runc</td><td>Low-level OCI runtime that actually creates & runs the container process</td></tr>
+        <tr><td>Registry</td><td>Stores & distributes images (Docker Hub, ACR, ECR, GCR, GitHub Container Registry, Harbor)</td></tr>
+        <tr><td>Docker objects</td><td>Images, containers, networks, volumes, plugins</td></tr>
+      </table>
+    </div>
+
+    <div class="section" id="s1-underlying">
+      <div class="section-header"><span class="section-num">03</span><h2>Underlying Linux Technology</h2></div>
+      <ul class="styled-list">
+        <li><strong>Namespaces</strong> — isolate what a process can see: PID (process IDs), NET (network stack), MNT (filesystem mounts), UTS (hostname), IPC (inter-process comms), USER (user/group IDs).</li>
+        <li><strong>cgroups (control groups)</strong> — limit and account for resource usage (CPU, memory, I/O, network) per container, preventing one container from starving the host.</li>
+        <li><strong>Union filesystem (OverlayFS)</strong> — stacks image layers into a single merged view; a thin writable layer sits on top for the running container.</li>
+        <li><strong>OCI (Open Container Initiative)</strong> — the industry-standard spec for image format and runtime that Docker, containerd, and Kubernetes all implement, ensuring interoperability.</li>
+      </ul>
+      <div class="info-box note">
+        <span class="icon">📘</span>
+        <div class="info-box-content">A container is fundamentally just a regular Linux process — <code>docker run</code> doesn't create a new kind of thing, it launches a process with restricted namespaces and cgroup limits applied.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s1-install">
+      <div class="section-header"><span class="section-num">04</span><h2>Installation & First Commands</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>bash — sanity checks</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre>docker <span class="op">--</span>version
+docker info                 <span class="cmt"># daemon details, storage driver, containers/images count</span>
+docker run hello-world      <span class="cmt"># pulls & runs a test image to confirm setup works</span></pre>
+      </div>
+      <div class="card-grid">
+        <div class="card"><div class="card-icon">🖼️</div><div class="card-title">Image</div><div class="card-desc">Read-only template — layered filesystem + metadata (Dockerfile blueprint result).</div></div>
+        <div class="card"><div class="card-icon">📦</div><div class="card-title">Container</div><div class="card-desc">A running (or stopped) instance of an image, with its own writable layer.</div></div>
+        <div class="card"><div class="card-icon">💾</div><div class="card-title">Volume</div><div class="card-desc">Persistent storage managed by Docker, outliving the container's life.</div></div>
+        <div class="card"><div class="card-icon">🌐</div><div class="card-title">Network</div><div class="card-desc">Virtual network letting containers talk to each other and the outside world.</div></div>
+      </div>
+    </div>
+  </div><!-- /page 1 -->
+
+  <!-- ══════════════════ PAGE 2 — IMAGES & DOCKERFILE ══════════════════ -->
+  <div class="page" id="p2">
+    <div class="hero">
+      <div class="hero-eyebrow">Page 02 / Docker</div>
+      <h1>Images <span>& Dockerfile</span></h1>
+      <p class="hero-desc">Every container starts life as an image — a stack of read-only layers built from a Dockerfile's instructions, cached and reused for speed.</p>
+      <div class="hero-badges">
+        <span class="badge badge-green">Layers</span>
+        <span class="badge badge-blue">Dockerfile</span>
+        <span class="badge badge-yellow">Multi-stage Builds</span>
+      </div>
+    </div>
+
+    <div class="section" id="s2-layers">
+      <div class="section-header"><span class="section-num">01</span><h2>Image Layers & Caching</h2></div>
+      <p>Each instruction in a Dockerfile that changes the filesystem (RUN, COPY, ADD) creates a new, immutable <strong style="color:var(--text)">layer</strong>. Layers are cached and content-addressed — if an instruction and its inputs haven't changed, Docker reuses the cached layer instead of rebuilding it.</p>
+      <div class="info-box tip">
+        <span class="icon">💡</span>
+        <div class="info-box-content">Order Dockerfile instructions from <strong>least to most frequently changing</strong> (e.g. install dependencies before copying source code) so cache hits happen more often and builds stay fast.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s2-dockerfile">
+      <div class="section-header"><span class="section-num">02</span><h2>Dockerfile Instructions</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>dockerfile — annotated example</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="kw">FROM</span> node:20-alpine                 <span class="cmt"># base image</span>
+<span class="kw">LABEL</span> maintainer=<span class="str">"team@example.com"</span>
+<span class="kw">ARG</span> BUILD_ENV=production            <span class="cmt"># build-time only variable</span>
+<span class="kw">ENV</span> NODE_ENV=$BUILD_ENV              <span class="cmt"># runtime environment variable</span>
+<span class="kw">WORKDIR</span> /app                        <span class="cmt"># sets cwd for following instructions</span>
+<span class="kw">COPY</span> package<span class="op">*</span>.json ./           <span class="cmt"># copy only manifest first (cache-friendly)</span>
+<span class="kw">RUN</span> npm ci <span class="op">--</span>only=production
+<span class="kw">COPY</span> . .                            <span class="cmt"># copy the rest of the source</span>
+<span class="kw">EXPOSE</span> 3000                         <span class="cmt"># documents the listening port</span>
+<span class="kw">USER</span> node                           <span class="cmt"># drop root privileges</span>
+<span class="kw">HEALTHCHECK</span> <span class="op">--</span>interval=30s <span class="kw">CMD</span> wget <span class="op">-</span>q <span class="op">--</span>spider http://localhost:3000/health <span class="op">||</span> exit 1
+<span class="kw">ENTRYPOINT</span> [<span class="str">"node"</span>]                  <span class="cmt"># fixed executable</span>
+<span class="kw">CMD</span> [<span class="str">"server.js"</span>]                  <span class="cmt"># default argument(s), overridable</span></pre>
+      </div>
+      <table>
+        <tr><th>Instruction</th><th>Purpose</th></tr>
+        <tr><td>FROM</td><td>Sets the base image; every Dockerfile starts here (or FROM scratch)</td></tr>
+        <tr><td>RUN</td><td>Executes a command at build time, creating a new layer</td></tr>
+        <tr><td>COPY</td><td>Copies files from build context into the image</td></tr>
+        <tr><td>ADD</td><td>Like COPY, but also auto-extracts tar archives and fetches remote URLs</td></tr>
+        <tr><td>WORKDIR</td><td>Sets the working directory for subsequent instructions</td></tr>
+        <tr><td>ENV</td><td>Sets a persistent environment variable, available at runtime</td></tr>
+        <tr><td>ARG</td><td>Build-time-only variable, not present in the final container</td></tr>
+        <tr><td>EXPOSE</td><td>Documents which port the container listens on (doesn't publish it)</td></tr>
+        <tr><td>VOLUME</td><td>Declares a mount point for persistent/external storage</td></tr>
+        <tr><td>USER</td><td>Sets the user (and group) subsequent instructions/container run as</td></tr>
+        <tr><td>CMD</td><td>Default command/args for the container; overridden by `docker run` args</td></tr>
+        <tr><td>ENTRYPOINT</td><td>Fixed executable the container always runs; CMD supplies default args to it</td></tr>
+        <tr><td>HEALTHCHECK</td><td>Command Docker runs periodically to report container health status</td></tr>
+      </table>
+      <div class="info-box warning">
+        <span class="icon">⚠️</span>
+        <div class="info-box-content"><strong>CMD vs ENTRYPOINT</strong> is a classic gotcha: with only CMD, `docker run image echo hi` replaces the whole command. With ENTRYPOINT set, extra `docker run` arguments are appended to it instead of replacing it.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s2-build">
+      <div class="section-header"><span class="section-num">03</span><h2>Building Images</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>bash — build & inspect</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre>docker build <span class="op">-</span>t myapp:1.0 .                 <span class="cmt"># build from Dockerfile in current dir</span>
+docker build <span class="op">-</span>f Dockerfile.prod <span class="op">-</span>t myapp:prod .
+docker history myapp:1.0                    <span class="cmt"># see each layer and its size</span>
+docker image inspect myapp:1.0
+docker images                               <span class="cmt"># list local images</span>
+docker image prune <span class="op">-</span>a                     <span class="cmt"># remove unused images</span></pre>
+      </div>
+      <h3>.dockerignore</h3>
+      <p>Just like <code>.gitignore</code>, this file excludes files (node_modules, .git, secrets, local env files) from the <strong style="color:var(--text)">build context</strong> sent to the daemon — smaller context, faster builds, and no accidental secret leakage into layers.</p>
+    </div>
+
+    <div class="section" id="s2-multistage">
+      <div class="section-header"><span class="section-num">04</span><h2>Multi-Stage Builds</h2></div>
+      <p>Multi-stage builds use multiple <code>FROM</code> statements in one Dockerfile — earlier stages compile/build, and the final stage copies only the needed artifacts, keeping the final image small and free of build tools.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>dockerfile — multi-stage build</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="kw">FROM</span> golang:1.22 <span class="kw">AS</span> builder
+<span class="kw">WORKDIR</span> /src
+<span class="kw">COPY</span> . .
+<span class="kw">RUN</span> go build <span class="op">-</span>o /app .
+
+<span class="kw">FROM</span> gcr.io/distroless/base-debian12
+<span class="kw">COPY</span> <span class="op">--</span>from=builder /app /app
+<span class="kw">USER</span> nonroot:nonroot
+<span class="kw">ENTRYPOINT</span> [<span class="str">"/app"</span>]</pre>
+      </div>
+      <div class="info-box tip">
+        <span class="icon">💡</span>
+        <div class="info-box-content">Using a minimal or <strong>distroless</strong> final-stage base image shrinks the attack surface — no shell, no package manager, no extra binaries an attacker could use.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s2-registry">
+      <div class="section-header"><span class="section-num">05</span><h2>Tags & Registries</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>bash — tag, push, pull</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre>docker tag myapp:1.0 myregistry.azurecr.io/myapp:1.0
+docker login myregistry.azurecr.io
+docker push myregistry.azurecr.io/myapp:1.0
+docker pull myregistry.azurecr.io/myapp:1.0</pre>
+      </div>
+      <table>
+        <tr><th>Registry</th><th>Notes</th></tr>
+        <tr><td>Docker Hub</td><td>Default public registry; rate-limited pulls for anonymous/free users</td></tr>
+        <tr><td>Azure Container Registry (ACR)</td><td>Private registry integrated with Azure IAM, geo-replication, built-in scanning add-ons</td></tr>
+        <tr><td>Amazon ECR / Google Artifact Registry</td><td>Cloud-native private registries with IAM integration</td></tr>
+        <tr><td>Harbor</td><td>Open-source, self-hosted registry with built-in vulnerability scanning & RBAC</td></tr>
+      </table>
+      <div class="info-box warning">
+        <span class="icon">⚠️</span>
+        <div class="info-box-content">Avoid the <code>latest</code> tag in production — it's mutable and non-reproducible. Pin specific versions or, better, image <strong>digests</strong> (<code>image@sha256:...</code>) for immutable, verifiable deployments.</div>
+      </div>
+    </div>
+  </div><!-- /page 2 -->
+
+  <!-- ══════════════════ PAGE 3 — CONTAINERS, NETWORK & STORAGE ══════════════════ -->
+  <div class="page" id="p3">
+    <div class="hero">
+      <div class="hero-eyebrow">Page 03 / Docker</div>
+      <h1>Containers, <span>Network & Storage</span></h1>
+      <p class="hero-desc">Running and managing container lifecycles, connecting containers to each other and the world, and making data survive beyond a container's life.</p>
+      <div class="hero-badges">
+        <span class="badge badge-green">Lifecycle</span>
+        <span class="badge badge-blue">Networking</span>
+        <span class="badge badge-yellow">Volumes</span>
+      </div>
+    </div>
+
+    <div class="section" id="s3-lifecycle">
+      <div class="section-header"><span class="section-num">01</span><h2>Container Lifecycle</h2></div>
+      <div class="flow">
+        <div class="flow-step"><div class="step-label">1</div><div class="step-name">Created</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step active"><div class="step-label">2</div><div class="step-name">Running</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><div class="step-label">3</div><div class="step-name">Paused / Stopped</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><div class="step-label">4</div><div class="step-name">Removed</div></div>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>bash — everyday container commands</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre>docker run <span class="op">-</span>d <span class="op">--</span>name web <span class="op">-</span>p 8080:80 nginx      <span class="cmt"># detached, port-mapped</span>
+docker ps                                     <span class="cmt"># running containers</span>
+docker ps <span class="op">-</span>a                                  <span class="cmt"># all containers, incl. stopped</span>
+docker logs <span class="op">-</span>f web                            <span class="cmt"># stream logs</span>
+docker exec <span class="op">-</span>it web sh                        <span class="cmt"># shell into a running container</span>
+docker stop web  <span class="op">&&</span> docker start web
+docker restart web
+docker rm web                                 <span class="cmt"># remove a stopped container</span>
+docker inspect web                            <span class="cmt"># full JSON metadata</span>
+docker stats                                  <span class="cmt"># live CPU/memory/network usage</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="s3-networking">
+      <div class="section-header"><span class="section-num">02</span><h2>Networking</h2></div>
+      <table>
+        <tr><th>Network driver</th><th>Behavior</th></tr>
+        <tr><td>bridge (default)</td><td>Private internal network on the host; containers reach each other by name on a user-defined bridge</td></tr>
+        <tr><td>host</td><td>Container shares the host's network stack directly — no port mapping, no isolation</td></tr>
+        <tr><td>none</td><td>No networking at all — fully isolated</td></tr>
+        <tr><td>overlay</td><td>Multi-host networking for Swarm/cluster setups, encapsulates traffic between hosts</td></tr>
+        <tr><td>macvlan</td><td>Assigns a container its own MAC address, appearing as a physical device on the LAN</td></tr>
+      </table>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>bash — custom network & port mapping</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre>docker network create app-net
+docker run <span class="op">-</span>d <span class="op">--</span>name db <span class="op">--</span>network app-net postgres:16
+docker run <span class="op">-</span>d <span class="op">--</span>name api <span class="op">--</span>network app-net <span class="op">-</span>p 5000:5000 myapi
+<span class="cmt"># 'api' can now reach the database simply via hostname 'db:5432'</span>
+docker network ls
+docker network inspect app-net</pre>
+      </div>
+      <div class="info-box note">
+        <span class="icon">📘</span>
+        <div class="info-box-content">On a <strong>user-defined bridge network</strong> (unlike the legacy default bridge), Docker provides automatic DNS resolution — containers can reach each other by container name.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s3-storage">
+      <div class="section-header"><span class="section-num">03</span><h2>Storage: Volumes, Bind Mounts & tmpfs</h2></div>
+      <table>
+        <tr><th>Type</th><th>Managed by</th><th>Use case</th></tr>
+        <tr><td>Volume</td><td>Docker (under /var/lib/docker/volumes)</td><td>Persistent app data, portable across containers, backup-friendly</td></tr>
+        <tr><td>Bind mount</td><td>You (any host path)</td><td>Local dev — mount source code straight into the container</td></tr>
+        <tr><td>tmpfs mount</td><td>Host RAM, never written to disk</td><td>Sensitive/temporary data (secrets, caches)</td></tr>
+      </table>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>bash — volumes & mounts</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre>docker volume create db-data
+docker run <span class="op">-</span>d <span class="op">-</span>v db-data:/var/lib/postgresql/data postgres:16
+docker run <span class="op">-</span>d <span class="op">-</span>v $(pwd):/app <span class="op">-</span>w /app node:20 npm run dev   <span class="cmt"># bind mount</span>
+docker run <span class="op">-</span>d <span class="op">--</span>tmpfs /app/cache nginx                      <span class="cmt"># tmpfs mount</span>
+docker volume ls
+docker volume prune</pre>
+      </div>
+      <div class="info-box warning">
+        <span class="icon">⚠️</span>
+        <div class="info-box-content">Containers are ephemeral by default — anything written to the container's own writable layer is lost with <code>docker rm</code>. Always use a volume or bind mount for data that must survive.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s3-resources">
+      <div class="section-header"><span class="section-num">04</span><h2>Resource Limits & Restart Policies</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>bash — constraining a container</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre>docker run <span class="op">-</span>d \
+  <span class="op">--</span>memory=512m <span class="op">--</span>cpus=<span class="str">"0.5"</span> \
+  <span class="op">--</span>restart=unless<span class="op">-</span>stopped \
+  myapp:1.0</pre>
+      </div>
+      <table>
+        <tr><th>Restart policy</th><th>Behavior</th></tr>
+        <tr><td>no (default)</td><td>Never restart automatically</td></tr>
+        <tr><td>on-failure[:N]</td><td>Restart only if it exits with a non-zero code, up to N times</td></tr>
+        <tr><td>always</td><td>Always restart, even after a manual stop + daemon restart</td></tr>
+        <tr><td>unless-stopped</td><td>Always restart unless the user explicitly stopped it</td></tr>
+      </table>
+    </div>
+  </div><!-- /page 3 -->
+
+  <!-- ══════════════════ PAGE 4 — COMPOSE & ORCHESTRATION ══════════════════ -->
+  <div class="page" id="p4">
+    <div class="hero">
+      <div class="hero-eyebrow">Page 04 / Docker</div>
+      <h1>Compose <span>& Orchestration</span></h1>
+      <p class="hero-desc">Defining and running multi-container applications declaratively, and understanding where Docker's own orchestration ends and Kubernetes begins.</p>
+      <div class="hero-badges">
+        <span class="badge badge-green">docker-compose.yml</span>
+        <span class="badge badge-blue">Swarm</span>
+        <span class="badge badge-yellow">Best Practices</span>
+      </div>
+    </div>
+
+    <div class="section" id="s4-compose">
+      <div class="section-header"><span class="section-num">01</span><h2>Docker Compose</h2></div>
+      <p><strong style="color:var(--text)">Docker Compose</strong> defines a multi-container application in a single YAML file — services, networks, volumes, env vars — and brings the whole stack up or down with one command.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>yaml — docker-compose.yml</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="kw">services</span>:
+  <span class="cls">api</span>:
+    <span class="kw">build</span>: .
+    <span class="kw">ports</span>:
+      <span class="op">-</span> <span class="str">"5000:5000"</span>
+    <span class="kw">environment</span>:
+      <span class="op">-</span> DB_HOST=db
+    <span class="kw">depends_on</span>:
+      <span class="op">-</span> db
+    <span class="kw">restart</span>: unless<span class="op">-</span>stopped
+
+  <span class="cls">db</span>:
+    <span class="kw">image</span>: postgres:16
+    <span class="kw">volumes</span>:
+      <span class="op">-</span> db<span class="op">-</span>data:/var/lib/postgresql/data
+    <span class="kw">environment</span>:
+      <span class="op">-</span> POSTGRES_PASSWORD=<span class="op">${</span>DB_PASSWORD<span class="op">}</span>
+
+<span class="kw">volumes</span>:
+  <span class="cls">db-data</span>:</pre>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>bash — compose commands</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre>docker compose up <span class="op">-</span>d              <span class="cmt"># build + start everything, detached</span>
+docker compose ps
+docker compose logs <span class="op">-</span>f api
+docker compose exec api sh
+docker compose down <span class="op">-</span>v              <span class="cmt"># stop & remove containers, networks, volumes</span>
+docker compose up <span class="op">-</span>d <span class="op">--</span>scale api=3     <span class="cmt"># run 3 replicas of a service</span></pre>
+      </div>
+      <div class="info-box note">
+        <span class="icon">📘</span>
+        <div class="info-box-content">Compose is ideal for local development and simple single-host deployments. For multi-host, self-healing, auto-scaling production workloads, teams move to Swarm or Kubernetes.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s4-orchestration">
+      <div class="section-header"><span class="section-num">02</span><h2>Orchestration: Swarm vs Kubernetes</h2></div>
+      <table>
+        <tr><th>Aspect</th><th>Docker Swarm</th><th>Kubernetes</th></tr>
+        <tr><td>Setup complexity</td><td>Very low — built into Docker Engine</td><td>Higher — separate control plane, more moving parts</td></tr>
+        <tr><td>Scaling & self-healing</td><td>Basic, built-in</td><td>Advanced — HPA, custom controllers, rich scheduling</td></tr>
+        <tr><td>Ecosystem</td><td>Smaller</td><td>Massive — Helm, Operators, service meshes, CNCF tooling</td></tr>
+        <tr><td>Best for</td><td>Small teams, simple clusters</td><td>Large-scale, complex production environments</td></tr>
+      </table>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>bash — swarm basics</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre>docker swarm init
+docker service create <span class="op">--</span>name web <span class="op">--</span>replicas 3 <span class="op">-</span>p 80:80 nginx
+docker service ls
+docker service scale web=5</pre>
+      </div>
+    </div>
+
+    <div class="section" id="s4-bestpractices">
+      <div class="section-header"><span class="section-num">03</span><h2>Dockerfile & Image Best Practices</h2></div>
+      <ul class="styled-list">
+        <li><strong>Use small, official base images</strong> — alpine or distroless variants instead of full OS images.</li>
+        <li><strong>Multi-stage builds</strong> to exclude compilers/build tools from the final image.</li>
+        <li><strong>Don't run as root</strong> — set a non-root USER in the Dockerfile.</li>
+        <li><strong>One process per container</strong> — keep containers single-purpose, composable, and easy to scale independently.</li>
+        <li><strong>Never bake secrets into the image</strong> — use build secrets (<code>--secret</code>), env vars, or a secrets manager instead of ARG/ENV for credentials.</li>
+        <li><strong>Pin versions</strong> — avoid `latest`; pin base image tags/digests for reproducible builds.</li>
+        <li><strong>Minimize layers</strong> — combine related RUN commands with <code>&&</code> and clean up caches in the same layer.</li>
+        <li><strong>Use .dockerignore</strong> to keep the build context small and avoid leaking files.</li>
+      </ul>
+    </div>
+  </div><!-- /page 4 -->
+
+  <!-- ══════════════════ PAGE 5 — SECURITY & TRIVY SCANNING ══════════════════ -->
+  <div class="page" id="p5">
+    <div class="hero">
+      <div class="hero-eyebrow">Page 05 / Docker Security</div>
+      <h1>Security <span>& Trivy Scanning</span></h1>
+      <p class="hero-desc">Where container risk actually comes from, the landscape of scanning tools, and a full walkthrough of Trivy — install, online scanning, fully offline/air-gapped scanning, and CI/CD integration.</p>
+      <div class="hero-badges">
+        <span class="badge badge-green">Vulnerability Scanning</span>
+        <span class="badge badge-blue">Trivy</span>
+        <span class="badge badge-yellow">Offline / Air-gapped</span>
+        <span class="badge badge-purple">SBOM</span>
+      </div>
+    </div>
+
+    <div class="section" id="s5-risks">
+      <div class="section-header"><span class="section-num">01</span><h2>Where Container Risk Comes From</h2></div>
+      <div class="card-grid">
+        <div class="card"><div class="card-icon">🐛</div><div class="card-title">OS & App Vulnerabilities</div><div class="card-desc">Known CVEs in base image OS packages and language dependencies (npm, pip, Maven, Go modules).</div></div>
+        <div class="card"><div class="card-icon">🔑</div><div class="card-title">Secrets in Layers</div><div class="card-desc">API keys/passwords accidentally COPYed or RUN-baked into an image layer — recoverable even if deleted later.</div></div>
+        <div class="card"><div class="card-icon">⚙️</div><div class="card-title">Misconfiguration</div><div class="card-desc">Running as root, privileged mode, exposed Docker socket, overly permissive capabilities.</div></div>
+        <div class="card"><div class="card-icon">📜</div><div class="card-title">License & Supply Chain</div><div class="card-desc">Unapproved licenses, tampered/unsigned base images, typosquatted packages.</div></div>
+      </div>
+      <div class="info-box danger">
+        <span class="icon">🚨</span>
+        <div class="info-box-content">A layer is immutable — deleting a secret file in a later <code>RUN</code> instruction does <strong>not</strong> remove it from the image; it still exists in the earlier layer and can be extracted.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s5-methods">
+      <div class="section-header"><span class="section-num">02</span><h2>Vulnerability Scanning Methods</h2></div>
+      <table>
+        <tr><th>Method</th><th>What it checks</th></tr>
+        <tr><td>Static image scanning</td><td>Inspects image layers/manifests for known-vulnerable OS packages & app dependencies (SCA)</td></tr>
+        <tr><td>Filesystem / repo scanning</td><td>Scans source code repos or unpacked filesystems before an image is even built</td></tr>
+        <tr><td>IaC / config scanning</td><td>Checks Dockerfiles, Kubernetes manifests, Terraform for misconfigurations</td></tr>
+        <tr><td>SBOM generation</td><td>Produces a Software Bill of Materials listing every package/version in the image</td></tr>
+        <tr><td>Runtime scanning</td><td>Monitors running containers for drift, unexpected processes, and live exploitation attempts</td></tr>
+        <tr><td>Secret scanning</td><td>Detects hardcoded credentials/keys baked into image layers</td></tr>
+      </table>
+      <h3>Common tools</h3>
+      <table>
+        <tr><th>Tool</th><th>Notes</th></tr>
+        <tr><td>Trivy (Aqua Security)</td><td>Free, open-source, all-in-one: images, filesystems, repos, IaC, SBOM, secrets</td></tr>
+        <tr><td>Grype (Anchore)</td><td>Fast open-source image/filesystem vulnerability scanner</td></tr>
+        <tr><td>Clair</td><td>Open-source, API-driven static analysis, often embedded in registries (e.g. Quay)</td></tr>
+        <tr><td>Docker Scout</td><td>Docker's own built-in scanning, integrated with Docker Desktop/Hub</td></tr>
+        <tr><td>Snyk Container</td><td>Commercial SaaS scanner with strong dependency-graph remediation advice</td></tr>
+        <tr><td>Anchore Enterprise</td><td>Policy-driven scanning with compliance reporting for regulated environments</td></tr>
+      </table>
+    </div>
+
+    <div class="section" id="s5-trivy-intro">
+      <div class="section-header"><span class="section-num">03</span><h2>What Is Trivy?</h2></div>
+      <p><strong style="color:var(--text)">Trivy</strong> (by Aqua Security) is a fast, open-source, all-in-one scanner. Besides container images, it scans filesystems, git repositories, Kubernetes clusters, and Infrastructure-as-Code files for vulnerabilities, misconfigurations, secrets, and license issues — and can output a full SBOM.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>bash — installing trivy</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="cmt"># macOS (Homebrew)</span>
+brew install aquasecurity/trivy/trivy
+
+<span class="cmt"># Debian/Ubuntu (apt repo)</span>
+sudo apt<span class="op">-</span>get install wget apt<span class="op">-</span>transport<span class="op">-</span>https gnupg
+wget <span class="op">-</span>qO <span class="op">-</span> https://aquasecurity.github.io/trivy-repo/deb/public.key <span class="op">|</span> sudo apt<span class="op">-</span>key add <span class="op">-</span>
+echo <span class="str">"deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main"</span> <span class="op">|</span> sudo tee <span class="op">-</span>a /etc/apt/sources.list.d/trivy.list
+sudo apt<span class="op">-</span>get update <span class="op">&&</span> sudo apt<span class="op">-</span>get install trivy
+
+<span class="cmt"># Run via Docker itself (no local install needed)</span>
+docker run <span class="op">--</span>rm <span class="op">-</span>v /var/run/docker.sock:/var/run/docker.sock \
+  aquasec/trivy image nginx:latest
+
+<span class="cmt"># Binary install script</span>
+curl <span class="op">-</span>sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh <span class="op">|</span> sh <span class="op">-</span>s <span class="op">--</span> <span class="op">-</span>b /usr/local/bin</pre>
+      </div>
+    </div>
+
+    <div class="section" id="s5-trivy-online">
+      <div class="section-header"><span class="section-num">04</span><h2>Trivy — Online (Default) Scanning</h2></div>
+      <p>By default Trivy connects to the internet to download its <strong style="color:var(--text)">vulnerability database</strong> (built from NVD, GitHub Security Advisories, distro security trackers) into a local cache before scanning — this is the normal mode for laptops, build servers, and CI runners with outbound internet access.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>bash — scan an image (online mode)</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="cmt"># Scan a local or remote image</span>
+trivy image nginx:1.25
+
+<span class="cmt"># Scan directly from a registry, without pulling to local docker</span>
+trivy image myregistry.azurecr.io/myapp:1.0
+
+<span class="cmt"># Only show HIGH and CRITICAL severities</span>
+trivy image <span class="op">--</span>severity HIGH,CRITICAL nginx:1.25
+
+<span class="cmt"># Fail the command (exit code 1) if any CRITICAL vuln is found — great for CI gates</span>
+trivy image <span class="op">--</span>severity CRITICAL <span class="op">--</span>exit<span class="op">-</span>code 1 myapp:1.0
+
+<span class="cmt"># Scan a Dockerfile / repo / filesystem directly</span>
+trivy config ./Dockerfile
+trivy fs .
+trivy repo https://github.com/org/myrepo
+
+<span class="cmt"># Generate a Software Bill of Materials (SBOM)</span>
+trivy image <span class="op">--</span>format cyclonedx <span class="op">--</span>output sbom.json myapp:1.0
+
+<span class="cmt"># Scan for secrets baked into layers</span>
+trivy image <span class="op">--</span>scanners secret myapp:1.0
+
+<span class="cmt"># JSON output for programmatic consumption</span>
+trivy image <span class="op">--</span>format json <span class="op">--</span>output results.json myapp:1.0</pre>
+      </div>
+      <div class="info-box tip">
+        <span class="icon">💡</span>
+        <div class="info-box-content">Trivy caches the DB locally (default ~<code>$HOME/.cache/trivy</code>) and refreshes it roughly every 6–12 hours by default — repeated scans on the same day don't always re-download it.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s5-trivy-offline">
+      <div class="section-header"><span class="section-num">05</span><h2>Trivy — Offline / Air-Gapped Scanning</h2></div>
+      <p>In air-gapped environments (no outbound internet from the scanning host — common in secure enterprise/on-prem setups), you download the vulnerability DB on a machine that <em>does</em> have internet access, then transfer and use it offline.</p>
+      <h3>Step 1 — Download the DB on an internet-connected machine</h3>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>bash — fetch trivy-db & java-db as OCI artifacts</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="cmt"># Trivy publishes its vuln DB and Java DB as OCI artifacts on GHCR</span>
+oras pull ghcr.io/aquasecurity/trivy-db:2
+oras pull ghcr.io/aquasecurity/trivy-java-db:1
+
+<span class="cmt"># Alternative: let trivy itself download to a specific cache dir, then archive it</span>
+trivy image <span class="op">--</span>download<span class="op">-</span>db<span class="op">-</span>only <span class="op">--</span>cache<span class="op">-</span>dir ./trivy-cache
+tar czf trivy-db.tar.gz <span class="op">-</span>C ./trivy-cache .</pre>
+      </div>
+      <h3>Step 2 — Transfer the archive to the air-gapped host</h3>
+      <p>Move <code>db.tar.gz</code> / <code>trivy-db.tar.gz</code> via USB drive, internal file share, or an internal artifact repository — whatever your organization's approved offline transfer process is.</p>
+      <h3>Step 3 — Scan offline</h3>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>bash — offline scan using the pre-loaded db</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="cmt"># Extract the DB into trivy's expected cache location</span>
+mkdir <span class="op">-</span>p ~/.cache/trivy/db
+tar xzf trivy-db.tar.gz <span class="op">-</span>C ~/.cache/trivy/db
+
+<span class="cmt"># Tell trivy not to attempt any network calls</span>
+trivy image <span class="op">--</span>skip<span class="op">-</span>db<span class="op">-</span>update <span class="op">--</span>offline<span class="op">-</span>scan myapp:1.0
+
+<span class="cmt"># If using a private/internal OCI registry mirror instead of GHCR:</span>
+trivy image <span class="op">--</span>db<span class="op">-</span>repository myinternal.registry/trivy-db:2 myapp:1.0</pre>
+      </div>
+      <table>
+        <tr><th>Flag</th><th>Effect</th></tr>
+        <tr><td>--skip-db-update</td><td>Don't attempt to check for or download a newer DB</td></tr>
+        <tr><td>--offline-scan</td><td>Never make any network call during the scan (fully air-gapped mode)</td></tr>
+        <tr><td>--cache-dir</td><td>Custom path to read/write the vulnerability DB cache</td></tr>
+        <tr><td>--db-repository</td><td>Point to an internal/private OCI mirror of the trivy-db instead of GHCR</td></tr>
+      </table>
+      <div class="info-box warning">
+        <span class="icon">⚠️</span>
+        <div class="info-box-content">An offline DB goes stale — build a recurring process (weekly/monthly) to refresh and re-import the DB archive, or offline scans will miss newly disclosed CVEs.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s5-trivy-ci">
+      <div class="section-header"><span class="section-num">06</span><h2>CI/CD Integration</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>yaml — GitHub Actions example</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre><span class="kw">- name</span>: Build image
+  <span class="kw">run</span>: docker build <span class="op">-</span>t myapp:<span class="op">${{</span> github.sha <span class="op">}}</span> .
+
+<span class="kw">- name</span>: Scan with Trivy
+  <span class="kw">uses</span>: aquasecurity/trivy<span class="op">-</span>action@master
+  <span class="kw">with</span>:
+    <span class="kw">image-ref</span>: myapp:<span class="op">${{</span> github.sha <span class="op">}}</span>
+    <span class="kw">severity</span>: <span class="str">CRITICAL,HIGH</span>
+    <span class="kw">exit-code</span>: <span class="str">'1'</span>
+    <span class="kw">format</span>: <span class="str">sarif</span>
+    <span class="kw">output</span>: <span class="str">trivy-results.sarif</span>
+
+<span class="kw">- name</span>: Upload results to Security tab
+  <span class="kw">uses</span>: github/codeql<span class="op">-</span>action/upload<span class="op">-</span>sarif@v3
+  <span class="kw">with</span>:
+    <span class="kw">sarif_file</span>: <span class="str">trivy-results.sarif</span></pre>
+      </div>
+      <div class="info-box tip">
+        <span class="icon">💡</span>
+        <div class="info-box-content">Use <code>exit-code: 1</code> paired with a severity filter to fail the pipeline — treat this as a merge/deploy gate, not just an informational report.</div>
+      </div>
+    </div>
+
+    <div class="section" id="s5-hardening">
+      <div class="section-header"><span class="section-num">07</span><h2>Additional Hardening Practices</h2></div>
+      <ul class="styled-list">
+        <li><strong>Docker Bench for Security</strong> — CIS benchmark audit script checking host & daemon configuration.</li>
+        <li><strong>Image signing</strong> — Docker Content Trust / Notary or Sigstore Cosign to verify an image hasn't been tampered with before deploy.</li>
+        <li><strong>Least privilege</strong> — avoid <code>--privileged</code>, drop unneeded Linux capabilities (<code>--cap-drop=ALL</code>, add back only what's needed).</li>
+        <li><strong>Read-only root filesystem</strong> — run containers with <code>--read-only</code> where the app doesn't need to write locally.</li>
+        <li><strong>Never mount the Docker socket</strong> into untrusted containers — it's effectively root access to the host.</li>
+        <li><strong>Regularly rebuild & rescan</strong> images even without code changes — new CVEs are discovered in base image packages constantly.</li>
+      </ul>
+    </div>
+  </div><!-- /page 5 -->
+
+  <!-- ══════════════════ PAGE 6 — INTERVIEW PREP ══════════════════ -->
+  <div class="page" id="p6">
+    <div class="hero">
+      <div class="hero-eyebrow">Page 06 / Interview Preparation</div>
+      <h1>Docker <span>Interview Prep</span></h1>
+      <p class="hero-desc">Common Docker interview questions grouped by topic. Click a question to reveal a concise answer you can build on out loud.</p>
+      <div class="hero-badges">
+        <span class="badge badge-green">Conceptual</span>
+        <span class="badge badge-blue">Scenario</span>
+        <span class="badge badge-yellow">Security</span>
+      </div>
+    </div>
+
+    <div class="section" id="s6-basics">
+      <div class="section-header"><span class="section-num">01</span><h2>Core Concepts</h2></div>
+
+      <details class="qa"><summary>What is the difference between a Docker image and a container?<span class="chev">▸</span></summary>
+        <div class="qa-answer">An image is a read-only, layered template built from a Dockerfile — it's just files on disk. A container is a running (or stopped) instance of that image, with its own thin writable layer on top and its own isolated process/network/filesystem namespace.</div>
+      </details>
+
+      <details class="qa"><summary>What's the difference between a Docker container and a virtual machine?<span class="chev">▸</span></summary>
+        <div class="qa-answer">A VM virtualizes hardware and runs a full guest OS with its own kernel via a hypervisor — heavier, slower to boot. A container shares the host kernel and is isolated using namespaces and cgroups — lightweight, starts in milliseconds, much higher density per host.</div>
+      </details>
+
+      <details class="qa"><summary>Explain the difference between CMD and ENTRYPOINT.<span class="chev">▸</span></summary>
+        <div class="qa-answer">CMD provides default arguments that are fully replaced if the user passes arguments to `docker run`. ENTRYPOINT sets a fixed executable that always runs; any arguments to `docker run` are appended to it rather than replacing it. They're often combined: ENTRYPOINT sets the binary, CMD supplies default flags.</div>
+      </details>
+
+      <details class="qa"><summary>What happens to data written inside a container when it's removed?<span class="chev">▸</span></summary>
+        <div class="qa-answer">It's lost — a container's writable layer is deleted along with the container. Any data that must persist has to live in a Docker volume or a bind mount to the host filesystem, which exist independently of the container's lifecycle.</div>
+      </details>
+
+      <details class="qa"><summary>What's the difference between COPY and ADD in a Dockerfile?<span class="chev">▸</span></summary>
+        <div class="qa-answer">COPY simply copies files/directories from the build context into the image. ADD does everything COPY does, plus it auto-extracts local tar archives and can fetch files from remote URLs. Best practice is to prefer COPY unless you specifically need ADD's extra behavior, since it's more predictable.</div>
+      </details>
+    </div>
+
+    <div class="section" id="s6-images-dockerfile">
+      <div class="section-header"><span class="section-num">02</span><h2>Images & Dockerfile</h2></div>
+
+      <details class="qa"><summary>How does Docker's build cache work, and how do you optimize for it?<span class="chev">▸</span></summary>
+        <div class="qa-answer">Each instruction produces a layer; Docker reuses a cached layer if the instruction and its inputs are unchanged. Optimize by ordering instructions from least-to-most frequently changing — e.g. copy dependency manifests and install dependencies before copying application source code, so code changes don't invalidate the dependency-install layer.</div>
+      </details>
+
+      <details class="qa"><summary>What is a multi-stage build and why use one?<span class="chev">▸</span></summary>
+        <div class="qa-answer">A Dockerfile with multiple FROM stages, where later stages selectively COPY artifacts from earlier ones. It lets you use a full SDK/compiler image to build the app, then ship only the compiled output in a minimal final image — smaller size and a much reduced attack surface.</div>
+      </details>
+
+      <details class="qa"><summary>Why should you avoid using the `latest` tag in production?<span class="chev">▸</span></summary>
+        <div class="qa-answer">`latest` is mutable — it can point to a different image tomorrow than it does today, breaking reproducibility and making rollbacks/debugging harder. Pin explicit version tags, or better, image digests (`image@sha256:...`), for immutable, auditable deployments.</div>
+      </details>
+
+      <details class="qa"><summary>How do you reduce Docker image size?<span class="chev">▸</span></summary>
+        <div class="qa-answer">Use a minimal base (alpine/distroless), multi-stage builds to drop build tools, combine RUN commands and clean package-manager caches in the same layer, avoid copying unnecessary files (.dockerignore), and remove dev dependencies from the final stage.</div>
+      </details>
+    </div>
+
+    <div class="section" id="s6-network-storage">
+      <div class="section-header"><span class="section-num">03</span><h2>Networking & Storage</h2></div>
+
+      <details class="qa"><summary>How do two containers on the same host communicate?<span class="chev">▸</span></summary>
+        <div class="qa-answer">By joining the same user-defined bridge network, where Docker provides automatic DNS resolution by container name — e.g. an API container can reach a database container simply via hostname `db`, without hardcoding IP addresses.</div>
+      </details>
+
+      <details class="qa"><summary>What's the difference between a volume and a bind mount?<span class="chev">▸</span></summary>
+        <div class="qa-answer">A volume is fully managed by Docker (stored under Docker's own directory), portable, and the recommended way to persist data. A bind mount maps an arbitrary host path directly into the container — useful for local development (live-mounting source code) but ties you to the host's filesystem layout.</div>
+      </details>
+
+      <details class="qa"><summary>What does the `host` network mode do, and when would you use it?<span class="chev">▸</span></summary>
+        <div class="qa-answer">It removes network isolation, letting the container share the host's network stack directly — no port mapping needed, but also no isolation. Used for cases needing maximum network performance or when a tool truly needs to bind to the host's network directly (rare in normal application deployments).</div>
+      </details>
+    </div>
+
+    <div class="section" id="s6-security-q">
+      <div class="section-header"><span class="section-num">04</span><h2>Security & Vulnerability Scanning</h2></div>
+
+      <details class="qa"><summary>Why can deleting a secret file in a later Dockerfile RUN step still leave it recoverable?<span class="chev">▸</span></summary>
+        <div class="qa-answer">Image layers are immutable and additive — a later layer that deletes a file only marks it hidden in the merged view; the file's bytes still physically exist in the earlier layer and can be extracted by anyone with access to the image. Secrets must never be baked in at all — use build secrets, runtime env vars, or a secrets manager instead.</div>
+      </details>
+
+      <details class="qa"><summary>What is Trivy and what can it scan besides container images?<span class="chev">▸</span></summary>
+        <div class="qa-answer">Trivy is an open-source, all-in-one scanner from Aqua Security. Besides container images, it can scan filesystems, git repositories, Kubernetes clusters, and Infrastructure-as-Code files (Dockerfiles, Terraform, Kubernetes manifests) for vulnerabilities, misconfigurations, exposed secrets, and license issues, and can also generate an SBOM.</div>
+      </details>
+
+      <details class="qa"><summary>How would you scan images in an air-gapped (no internet) environment with Trivy?<span class="chev">▸</span></summary>
+        <div class="qa-answer">Download the vulnerability database (trivy-db, distributed as an OCI artifact) on a machine with internet access, transfer the archive to the air-gapped host through an approved offline channel, load it into Trivy's cache directory, then run scans with `--skip-db-update --offline-scan` so no network calls are attempted. The DB needs periodic manual refreshing since it can't auto-update.</div>
+      </details>
+
+      <details class="qa"><summary>Why should containers avoid running as root?<span class="chev">▸</span></summary>
+        <div class="qa-answer">If an attacker exploits a vulnerability inside a root-running container, they get root-level access within that container's namespace — which is a stronger foothold and, combined with certain misconfigurations (like a mounted Docker socket or privileged mode), can potentially lead to host-level compromise. Setting a non-root USER in the Dockerfile limits the blast radius.</div>
+      </details>
+
+      <details class="qa"><summary>What's the difference between a vulnerability scan and a misconfiguration/IaC scan?<span class="chev">▸</span></summary>
+        <div class="qa-answer">A vulnerability scan checks installed OS/application packages against known CVE databases. A misconfiguration/IaC scan instead checks the *configuration* itself — e.g. a Dockerfile running as root, a Kubernetes pod without resource limits, or an S3 bucket set to public — issues that exist regardless of package versions. Tools like Trivy can do both in one pass.</div>
+      </details>
+    </div>
+
+    <div class="section" id="s6-scenario">
+      <div class="section-header"><span class="section-num">05</span><h2>Scenario / Troubleshooting</h2></div>
+
+      <details class="qa"><summary>A container keeps restarting in a crash loop — how do you debug it?<span class="chev">▸</span></summary>
+        <div class="qa-answer">Check `docker logs <container>` for the exit reason first. Run `docker ps -a` to see the exit code, and `docker inspect` for OOMKilled or other state flags. If the entrypoint crashes before logging anything useful, override it temporarily (`docker run -it --entrypoint sh image`) to poke around interactively.</div>
+      </details>
+
+      <details class="qa"><summary>Your image build works locally but fails in CI — what would you check?<span class="chev">▸</span></summary>
+        <div class="qa-answer">Common culprits: different Docker/BuildKit version, missing files due to .dockerignore differences, build context not including needed files, platform/architecture mismatch (amd64 vs arm64), or the CI runner lacking cached layers a local machine has, exposing a genuine dependency-resolution issue that was masked by cache locally.</div>
+      </details>
+
+      <details class="qa"><summary>How would you reduce a 1.2GB image down significantly without changing the app?<span class="chev">▸</span></summary>
+        <div class="qa-answer">Switch the base image to a slim/alpine or distroless variant, use a multi-stage build so build-time dependencies never reach the final image, remove package manager caches in the same RUN layer they're created in, and check `docker history` to find and eliminate any unexpectedly large layers.</div>
+      </details>
+    </div>
+  </div><!-- /page 6 -->
+
+  <!-- ══════════════════ PAGE 7 — CHEATSHEET ══════════════════ -->
+  <div class="page" id="p7">
+    <div class="hero">
+      <div class="hero-eyebrow">Page 07 / Reference</div>
+      <h1>Quick <span>Cheatsheet</span></h1>
+      <p class="hero-desc">Fast reference for everyday Docker commands, Dockerfile instructions, and Trivy scan flags.</p>
+      <div class="hero-badges">
+        <span class="badge badge-green">Quick Reference</span>
+      </div>
+    </div>
+
+    <div class="section" id="s7-cli">
+      <div class="section-header"><span class="section-num">01</span><h2>Docker CLI Quick Reference</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>bash essentials</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre>docker build <span class="op">-</span>t name:tag .
+docker run <span class="op">-</span>d <span class="op">-</span>p host:container <span class="op">--</span>name n image
+docker ps <span class="op">-</span>a
+docker exec <span class="op">-</span>it name sh
+docker logs <span class="op">-</span>f name
+docker stop/start/restart/rm name
+docker images / docker rmi image
+docker volume ls / create / rm
+docker network ls / create / rm
+docker system prune <span class="op">-</span>a <span class="op">--</span>volumes   <span class="cmt"># clean everything unused</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="s7-dockerfile-quick">
+      <div class="section-header"><span class="section-num">02</span><h2>Dockerfile Instructions</h2></div>
+      <table>
+        <tr><th>Instruction</th><th>Quick meaning</th></tr>
+        <tr><td>FROM</td><td>Base image</td></tr>
+        <tr><td>RUN</td><td>Execute at build time</td></tr>
+        <tr><td>COPY / ADD</td><td>Copy files into image</td></tr>
+        <tr><td>WORKDIR</td><td>Set working directory</td></tr>
+        <tr><td>ENV / ARG</td><td>Runtime var / build-time var</td></tr>
+        <tr><td>EXPOSE</td><td>Document listening port</td></tr>
+        <tr><td>VOLUME</td><td>Declare mount point</td></tr>
+        <tr><td>USER</td><td>Set runtime user</td></tr>
+        <tr><td>CMD / ENTRYPOINT</td><td>Default command / fixed executable</td></tr>
+        <tr><td>HEALTHCHECK</td><td>Periodic health probe command</td></tr>
+      </table>
+    </div>
+
+    <div class="section" id="s7-compose-quick">
+      <div class="section-header"><span class="section-num">03</span><h2>Compose Quick Reference</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>bash essentials</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre>docker compose up <span class="op">-</span>d
+docker compose down <span class="op">-</span>v
+docker compose ps / logs <span class="op">-</span>f / exec name sh
+docker compose up <span class="op">-</span>d <span class="op">--</span>scale service=3</pre>
+      </div>
+    </div>
+
+    <div class="section" id="s7-trivy-quick">
+      <div class="section-header"><span class="section-num">04</span><h2>Trivy Quick Reference</h2></div>
+      <div class="code-block">
+        <div class="code-header"><div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div><span>bash essentials</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <pre>trivy image name:tag                              <span class="cmt"># online scan</span>
+trivy image <span class="op">--</span>severity CRITICAL,HIGH <span class="op">--</span>exit<span class="op">-</span>code 1 name:tag
+trivy fs . / trivy repo url / trivy config ./Dockerfile
+trivy image <span class="op">--</span>format cyclonedx <span class="op">--</span>output sbom.json name:tag
+trivy image <span class="op">--</span>download<span class="op">-</span>db<span class="op">-</span>only <span class="op">--</span>cache<span class="op">-</span>dir ./cache   <span class="cmt"># prep for offline</span>
+trivy image <span class="op">--</span>skip<span class="op">-</span>db<span class="op">-</span>update <span class="op">--</span>offline<span class="op">-</span>scan name:tag   <span class="cmt"># offline scan</span></pre>
+      </div>
+      <div class="divider"></div>
+      <div class="info-box tip">
+        <span class="icon">💡</span>
+        <div class="info-box-content">Use the sidebar search on each tab to jump straight to a section. On the Interview Prep tab, click any question to expand its answer.</div>
+      </div>
+    </div>
+  </div><!-- /page 7 -->
+
+  </main>
+</div><!-- /layout -->
+
+<button id="back-top" onclick="scrollToTop()">↑ TOP</button>
+
+<script>
+const tocData = {
+  p1: {
+    title: "🐳 Fundamentals",
+    sections: [
+      { label: "Fundamentals", links: [
+        { href: "s1-what", icon: "📖", text: "What Is Docker & Why Containers?" },
+        { href: "s1-architecture", icon: "🏗️", text: "Docker Architecture" },
+        { href: "s1-underlying", icon: "🧬", text: "Underlying Linux Technology" },
+        { href: "s1-install", icon: "⚙️", text: "Installation & First Commands" },
+      ]}
+    ]
+  },
+  p2: {
+    title: "📦 Images & Dockerfile",
+    sections: [
+      { label: "Images & Dockerfile", links: [
+        { href: "s2-layers", icon: "🧱", text: "Image Layers & Caching" },
+        { href: "s2-dockerfile", icon: "📝", text: "Dockerfile Instructions" },
+        { href: "s2-build", icon: "🔨", text: "Building Images" },
+        { href: "s2-multistage", icon: "🪜", text: "Multi-Stage Builds" },
+        { href: "s2-registry", icon: "🏷️", text: "Tags & Registries" },
+      ]}
+    ]
+  },
+  p3: {
+    title: "🔌 Containers, Network & Storage",
+    sections: [
+      { label: "Runtime", links: [
+        { href: "s3-lifecycle", icon: "🔄", text: "Container Lifecycle" },
+        { href: "s3-networking", icon: "🌐", text: "Networking" },
+        { href: "s3-storage", icon: "💾", text: "Volumes, Bind Mounts & tmpfs" },
+        { href: "s3-resources", icon: "⚖️", text: "Resource Limits & Restart Policies" },
+      ]}
+    ]
+  },
+  p4: {
+    title: "🧩 Compose & Orchestration",
+    sections: [
+      { label: "Compose", links: [
+        { href: "s4-compose", icon: "📄", text: "Docker Compose" },
+        { href: "s4-orchestration", icon: "🐝", text: "Swarm vs Kubernetes" },
+        { href: "s4-bestpractices", icon: "✅", text: "Dockerfile & Image Best Practices" },
+      ]}
+    ]
+  },
+  p5: {
+    title: "🛡️ Security & Trivy Scanning",
+    sections: [
+      { label: "Security", links: [
+        { href: "s5-risks", icon: "⚠️", text: "Where Container Risk Comes From" },
+        { href: "s5-methods", icon: "🔍", text: "Vulnerability Scanning Methods" },
+        { href: "s5-trivy-intro", icon: "🔰", text: "What Is Trivy?" },
+        { href: "s5-trivy-online", icon: "🌐", text: "Trivy — Online Scanning" },
+        { href: "s5-trivy-offline", icon: "📴", text: "Trivy — Offline / Air-Gapped" },
+        { href: "s5-trivy-ci", icon: "🔁", text: "CI/CD Integration" },
+        { href: "s5-hardening", icon: "🛡️", text: "Additional Hardening Practices" },
+      ]}
+    ]
+  },
+  p6: {
+    title: "🎯 Interview Prep",
+    sections: [
+      { label: "Interview Questions", links: [
+        { href: "s6-basics", icon: "📖", text: "Core Concepts" },
+        { href: "s6-images-dockerfile", icon: "📦", text: "Images & Dockerfile" },
+        { href: "s6-network-storage", icon: "🔌", text: "Networking & Storage" },
+        { href: "s6-security-q", icon: "🛡️", text: "Security & Vulnerability Scanning" },
+        { href: "s6-scenario", icon: "💻", text: "Scenario / Troubleshooting" },
+      ]}
+    ]
+  },
+  p7: {
+    title: "📋 Cheatsheet",
+    sections: [
+      { label: "Reference", links: [
+        { href: "s7-cli", icon: "🧾", text: "Docker CLI Quick Reference" },
+        { href: "s7-dockerfile-quick", icon: "📝", text: "Dockerfile Instructions" },
+        { href: "s7-compose-quick", icon: "📄", text: "Compose Quick Reference" },
+        { href: "s7-trivy-quick", icon: "🔍", text: "Trivy Quick Reference" },
+      ]}
+    ]
+  }
+};
+
+let currentPage = 'p1';
+
+function buildTOC(pageId) {
+  const data = tocData[pageId];
+  const container = document.getElementById('toc-content');
+  document.getElementById('sidebar-title').textContent = data.title;
+  let html = '';
+  data.sections.forEach(sec => {
+    html += `<div class="toc-section">`;
+    if (sec.label) html += `<div class="toc-section-label">${sec.label}</div>`;
+    sec.links.forEach(l => {
+      html += `<a class="toc-link" onclick="scrollToSection('${l.href}')">
+        <span class="toc-icon">${l.icon}</span>${l.text}
+      </a>`;
+    });
+    html += `</div>`;
+  });
+  container.innerHTML = html;
+}
+
+function switchPage(pageId, tab) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+  tab.classList.add('active');
+  currentPage = pageId;
+  document.getElementById('main').scrollTop = 0;
+  buildTOC(pageId);
+  document.getElementById('toc-search').value = '';
+  closeSidebar();
+}
+
+function scrollToSection(id) {
+  const el = document.getElementById(id);
+  if (el) {
+    document.getElementById('main').scrollTo({ top: el.offsetTop - 20, behavior: 'smooth' });
+    document.querySelectorAll('.toc-link').forEach(l => l.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+  }
+  closeSidebar();
+}
+
+function scrollToTop() {
+  document.getElementById('main').scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.getElementById('main').addEventListener('scroll', function() {
+  const btn = document.getElementById('back-top');
+  btn.classList.toggle('visible', this.scrollTop > 400);
+});
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+function filterTOC(q) {
+  q = q.toLowerCase();
+  document.querySelectorAll('.toc-link').forEach(link => {
+    link.style.display = link.textContent.toLowerCase().includes(q) ? 'flex' : 'none';
+  });
+  document.querySelectorAll('.toc-section-label').forEach(label => {
+    const visible = [...label.parentElement.querySelectorAll('.toc-link')].some(l => l.style.display !== 'none');
+    label.style.display = visible ? '' : 'none';
+  });
+}
+
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  navigator.clipboard.writeText(pre.innerText).then(() => {
+    btn.textContent = 'COPIED!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+buildTOC('p1');
+</script>
+
+<!-- ══════════ Learning Hub integration (injected) ══════════ -->
+<style>
+  #hub-back-btn {
+    position: fixed; top: 10px; right: 16px; z-index: 999;
+    display: flex; align-items: center; gap: 6px;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 12px; font-weight: 600; letter-spacing: .03em;
+    color: #0a0a0a; background: #00ff88;
+    padding: 7px 13px; border-radius: 20px; text-decoration: none;
+    box-shadow: 0 2px 14px rgba(0,255,136,.35);
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  #hub-back-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 18px rgba(0,255,136,.5); }
+  .search-highlight-pulse {
+    animation: hubPulse 1.4s ease-out 2;
+    border-radius: 10px;
+  }
+  @keyframes hubPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(0,255,136,.55); }
+    70%  { box-shadow: 0 0 0 14px rgba(0,255,136,0); }
+    100% { box-shadow: 0 0 0 0 rgba(0,255,136,0); }
+  }
+  @media (max-width: 640px) { #hub-back-btn span.lbl { display: none; } }
+</style>
+<a id="hub-back-btn" href="../index.html" title="Back to Learning Hub">&#8592; <span class="lbl">Hub</span></a>
+<script>
+(function () {
+  function getParam(name) {
+    return new URLSearchParams(window.location.search).get(name);
+  }
+  function go() {
+    var page = getParam('page');
+    var nb = getParam('nb');
+    var sec = getParam('sec');
+    try {
+      if (page && typeof switchPage === 'function') {
+        var tab = document.querySelector('.page-tab[onclick*="\'' + page + '\'"]');
+        if (tab) switchPage(page, tab);
+      }
+    } catch (e) { /* noop */ }
+    try {
+      if (nb && typeof openNotebook === 'function') {
+        var item = document.querySelector('.toc-item[onclick*="\'' + nb + '\'"]');
+        document.querySelectorAll('.notebook-page').forEach(function(p){ p.classList.remove('active'); });
+        var target = document.getElementById(nb);
+        if (target) target.classList.add('active');
+        document.querySelectorAll('.toc-item').forEach(function(el){ el.classList.remove('active'); });
+        if (item) item.classList.add('active');
+      }
+    } catch (e) { /* noop */ }
+    if (sec) {
+      setTimeout(function () {
+        var el = document.getElementById(sec);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          el.classList.add('search-highlight-pulse');
+          setTimeout(function () { el.classList.remove('search-highlight-pulse'); }, 3000);
+        }
+      }, 200);
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', go);
+  } else {
+    go();
+  }
+})();
+</script>
+
+</body>
+</html>
